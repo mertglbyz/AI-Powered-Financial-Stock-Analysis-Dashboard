@@ -160,6 +160,7 @@ export interface PerformanceStockItem {
   ticker: string;
   code: string;
   name: string;
+  sector?: string;
   last_close: number;
   start_close: number;
   change: number;
