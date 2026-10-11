@@ -10,14 +10,21 @@ Borsa İstanbul (BIST) hisselerinin geçmiş verilerini analiz eden, teknik indi
 
 ## Yol Haritası
 - [x] Phase 1 – Data Pipeline & Feature Engineering
-- [ ] Phase 2 – ML Model
+- [x] Phase 2 – ML Model
 - [ ] Phase 3 – FastAPI Backend
 - [ ] Phase 4 – Next.js Dashboard
 - [ ] Phase 5 – Docker
+- [ ] CI/CD (GitHub Actions)
 
-## Phase 1 – Hızlı Test
+> Detaylı mimari ve "nasıl çalışır" dokümantasyonu ilerleyen fazlarda eklenecek.
+
+## Hızlı Test
 ```bash
 cd backend
-pip install -r requirements.txt
-python data_pipeline.py THYAO.IS
+pip install -r requirements-dev.txt
+python data_pipeline.py THYAO.IS        # Phase 1: veri + indikatörler
+python ml_model.py --train              # Phase 2: modeli eğit -> model.pkl
+python ml_model.py --predict THYAO.IS   # Phase 2: tahmin (model varsa yeniden eğitmez)
+pytest -q tests                         # Birim testleri (internetsiz)
 ```
+
