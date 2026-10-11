@@ -2,12 +2,18 @@
 Data Pipeline & Feature Engineering
 -----------------------------------
 yfinance ile hisse verisini çeker, eksik değerleri temizler ve
-teknik indikatörleri (SMA_20, SMA_50, RSI_14, MACD) hesaplar.
+teknik indikatörleri (SMA_20, SMA_50, RSI_14, MACD, Bollinger, ATR) hesaplar.
+
+Aynı sembol kısa süre içinde tekrar istendiğinde yfinance'a gitmemek için
+bellek içi TTL önbelleği kullanılır (DATA_CACHE_TTL saniye, varsayılan 900).
 """
 
 from __future__ import annotations
 
 import logging
+import os
+import threading
+import time
 
 import numpy as np
 import pandas as pd
@@ -16,10 +22,25 @@ import yfinance as yf
 logger = logging.getLogger(__name__)
 
 PRICE_COLUMNS = ["Open", "High", "Low", "Close", "Volume"]
+MARKET_INDEX = "XU100.IS"
+CACHE_TTL_SECONDS = int(os.getenv("DATA_CACHE_TTL", "900"))
+
+_cache: dict[tuple[str, str], tuple[float, pd.DataFrame]] = {}
+_cache_lock = threading.Lock()
 
 
 class DataFetchError(Exception):
     """yfinance veri çekemediğinde veya veri boş döndüğünde fırlatılır."""
+
+
+def normalize_ticker(ticker: str) -> str:
+    """'thyao' -> 'THYAO.IS'. Nokta veya ^ içeren semboller olduğu gibi bırakılır."""
+    t = (ticker or "").strip().upper()
+    if not t:
+        raise ValueError("Hisse sembolü boş olamaz.")
+    if "." not in t and not t.startswith("^"):
+        t = f"{t}.IS"
+    return t
 
 
 # ---------------------------------------------------------------------------
@@ -27,9 +48,12 @@ class DataFetchError(Exception):
 # ---------------------------------------------------------------------------
 def fetch_stock_data(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
     """Verilen sembol için (varsayılan: son 5 yıl, günlük) OHLCV verisini çeker."""
-    ticker = ticker.strip().upper()
-    if not ticker:
-        raise ValueError("Hisse sembolü boş olamaz.")
+    ticker = normalize_ticker(ticker)
+    key = (ticker, f"{period}:{interval}")
+    with _cache_lock:
+        hit = _cache.get(key)
+        if hit and time.time() - hit[0] < CACHE_TTL_SECONDS:
+            return hit[1].copy()
 
     try:
         df = yf.download(
@@ -57,7 +81,15 @@ def fetch_stock_data(ticker: str, period: str = "5y", interval: str = "1d") -> p
     df = df[PRICE_COLUMNS].copy()
     df.index = pd.to_datetime(df.index).tz_localize(None)
     df.index.name = "Date"
-    return df
+    with _cache_lock:
+        _cache[key] = (time.time(), df)
+    return df.copy()
+
+
+def fetch_market_returns(period: str = "5y") -> pd.DataFrame:
+    """BIST100 endeksinin kapanış serisini döndürür (piyasa bağlamı özellikleri için)."""
+    df = clean_data(fetch_stock_data(MARKET_INDEX, period=period))
+    return df[["Close"]].rename(columns={"Close": "MKT_Close"})
 
 
 # ---------------------------------------------------------------------------
@@ -111,14 +143,28 @@ def compute_macd(
     return macd, macd_signal, macd_hist
 
 
+def compute_atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """Average True Range (Wilder)."""
+    prev_close = df["Close"].shift(1)
+    tr = pd.concat(
+        [df["High"] - df["Low"], (df["High"] - prev_close).abs(), (df["Low"] - prev_close).abs()],
+        axis=1,
+    ).max(axis=1)
+    return tr.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
+
+
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
-    """SMA_20, SMA_50, RSI_14, MACD, MACD_Signal, MACD_Hist kolonlarını ekler."""
+    """SMA_20, SMA_50, RSI_14, MACD(+Signal/Hist), BB_Upper/BB_Lower, ATR_14 kolonlarını ekler."""
     df = df.copy()
     close = df["Close"]
     df["SMA_20"] = compute_sma(close, 20)
     df["SMA_50"] = compute_sma(close, 50)
     df["RSI_14"] = compute_rsi(close, 14)
     df["MACD"], df["MACD_Signal"], df["MACD_Hist"] = compute_macd(close)
+    std20 = close.rolling(20, min_periods=20).std()
+    df["BB_Upper"] = df["SMA_20"] + 2 * std20
+    df["BB_Lower"] = df["SMA_20"] - 2 * std20
+    df["ATR_14"] = compute_atr(df, 14)
     # İndikatör ısınma periyodundan kaynaklanan NaN satırlarını at
     return df.dropna()
 
