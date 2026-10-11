@@ -9,16 +9,17 @@ import {
   ShieldAlert,
   Brain,
   Gauge,
-  CheckCircle2,
   AlertTriangle,
+  HelpCircle,
 } from "lucide-react";
-import { PredictionResponse, TrendType } from "@/types/stock";
+import { PredictionResponse } from "@/types/stock";
 
 interface PredictionCardProps {
   prediction: PredictionResponse | null;
   isLoading: boolean;
   error?: string | null;
   onRetry?: () => void;
+  onOpenGlossary?: () => void;
 }
 
 export const PredictionCard: React.FC<PredictionCardProps> = ({
@@ -26,10 +27,11 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
   isLoading,
   error,
   onRetry,
+  onOpenGlossary,
 }) => {
   if (isLoading) {
     return (
-      <div className="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-4 animate-pulse">
+      <div className="card-panel rounded-2xl p-6 space-y-4 animate-pulse">
         <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded-lg w-1/2" />
         <div className="h-16 bg-slate-200 dark:bg-slate-800 rounded-xl" />
         <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
@@ -43,7 +45,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
 
   if (error || !prediction) {
     return (
-      <div className="glass-panel rounded-2xl p-6 border border-slate-200 dark:border-slate-800 space-y-3 text-center">
+      <div className="card-panel rounded-2xl p-6 space-y-3 text-center">
         <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
           <AlertTriangle className="w-5 h-5" />
         </div>
@@ -74,7 +76,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
         badgeBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
         glow: "shadow-emerald-500/10",
         icon: TrendingUp,
-        label: "YÜKSELİŞ BEKLENTİSİ",
+        label: "YÜKSELİŞ TAHMİNİ",
         color: "text-emerald-500",
       }
     : isBearish
@@ -83,7 +85,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
         badgeBg: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
         glow: "shadow-rose-500/10",
         icon: TrendingDown,
-        label: "DÜŞÜŞ BEKLENTİSİ",
+        label: "DÜŞÜŞ TAHMİNİ",
         color: "text-rose-500",
       }
     : {
@@ -91,7 +93,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
         badgeBg: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
         glow: "shadow-amber-500/10",
         icon: Minus,
-        label: "YATAY / NÖTR BEKLENTİ",
+        label: "YATAY / NÖTR TAHMİN",
         color: "text-amber-500",
       };
 
@@ -100,7 +102,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
 
   return (
     <div
-      className={`glass-panel rounded-2xl p-5 sm:p-6 space-y-5 border ${themeConfig.border} shadow-lg ${themeConfig.glow} transition`}
+      className={`card-panel rounded-2xl p-5 sm:p-6 space-y-5 border ${themeConfig.border} shadow-lg ${themeConfig.glow} transition`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -113,7 +115,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
               Yapay Zeka Analiz Kartı
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             </h2>
-            <p className="text-[11px] text-slate-400">1 Günlük Tahmin Modeli</p>
+            <p className="text-[11px] text-slate-400">Random Forest Regresyon & Sınıflandırma</p>
           </div>
         </div>
 
@@ -127,10 +129,22 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
       </div>
 
       {/* Primary Target Price Highlight */}
-      <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800 space-y-2">
-        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider block">
-          Hedef Kapanış Fiyatı (Sonraki İş Günü)
-        </span>
+      <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+            Hedef Kapanış Fiyatı (Sonraki Gün)
+          </span>
+          {onOpenGlossary && (
+            <button
+              onClick={onOpenGlossary}
+              className="text-slate-400 hover:text-blue-500 transition"
+              title="Terim ve formül açıklamaları"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
         <div className="flex items-baseline justify-between flex-wrap gap-2">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold font-mono text-slate-900 dark:text-white">
@@ -149,8 +163,10 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
           </div>
 
           <div className="text-right">
-            <span className="text-[11px] text-slate-400 block">Güven Aralığı</span>
-            <span className="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300">
+            <span className="text-[11px] text-slate-400 block" title="Karar ağaçlarının %10 ile %90 persentil güven aralığı">
+              %10-%90 Güven Aralığı
+            </span>
+            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
               ₺{prediction.price_range_low.toFixed(2)} - ₺{prediction.price_range_high.toFixed(2)}
             </span>
           </div>
@@ -160,9 +176,9 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
       {/* Upward Probability Bar */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+          <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5" title="Model ağaçlarının yükseliş yönlü oy oranı (≥%55: Yükseliş, ≤%45: Düşüş)">
             <Gauge className="w-3.5 h-3.5 text-indigo-500" />
-            Yükseliş Olasılığı
+            Yükseliş Olasılığı (Directional Probability)
           </span>
           <span className="font-bold font-mono text-slate-900 dark:text-white">
             %{probPct}
@@ -182,36 +198,46 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
         </div>
       </div>
 
-      {/* Technical Signals Breakdown */}
+      {/* Technical Signals Breakdown with Tooltips */}
       <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-          Teknik İndikatör Sinyalleri
-        </span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+            Teknik İndikatör Sinyalleri (5 Sinyal)
+          </span>
+          {onOpenGlossary && (
+            <button
+              onClick={onOpenGlossary}
+              className="text-[11px] text-blue-500 hover:underline"
+            >
+              Nasıl Yorumlanır?
+            </button>
+          )}
+        </div>
 
         <div className="space-y-1.5">
           {prediction.signals?.map((sig, idx) => {
             const sigColor =
               sig.signal === "BULLISH"
-                ? "text-emerald-500 bg-emerald-500/10"
+                ? "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
                 : sig.signal === "BEARISH"
-                ? "text-rose-500 bg-rose-500/10"
-                : "text-amber-500 bg-amber-500/10";
+                ? "text-rose-500 bg-rose-500/10 border-rose-500/20"
+                : "text-amber-500 bg-amber-500/10 border-amber-500/20";
 
             return (
               <div
                 key={idx}
-                className="flex items-center justify-between p-2 rounded-lg bg-slate-50/80 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 text-xs"
+                className="flex items-center justify-between p-2 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 text-xs"
               >
                 <div className="flex items-center gap-2 min-w-0 pr-2">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 shrink-0">
+                  <span className="font-bold text-slate-900 dark:text-white shrink-0">
                     {sig.name}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                     {sig.description}
                   </span>
                 </div>
                 <span
-                  className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase shrink-0 ${sigColor}`}
+                  className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase shrink-0 border ${sigColor}`}
                 >
                   {sig.signal === "BULLISH"
                     ? "AL"
@@ -226,10 +252,10 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
       </div>
 
       {/* Disclaimer */}
-      <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-600 dark:text-amber-400/90 leading-relaxed">
+      <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400/90 leading-relaxed">
         <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
         <span>
-          <strong>Yasal Uyarı (YTD):</strong> Bu veriler Scikit-Learn Random Forest modeli tarafından eğitim veri seti üzerinden matematiksel olarak üretilmiştir. Yatırım tavsiyesi niteliği taşımaz.
+          <strong>Yasal Uyarı (YTD):</strong> Bu veriler Scikit-Learn Random Forest modeli tarafından matematiksel olarak üretilmiştir. Kesinlikle yatırım tavsiyesi niteliği taşımaz.
         </span>
       </div>
     </div>

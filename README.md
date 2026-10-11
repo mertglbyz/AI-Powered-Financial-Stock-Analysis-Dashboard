@@ -1,143 +1,271 @@
 # 📈 AI-Powered Financial Stock Analysis Dashboard
 
-Borsa İstanbul (BIST) hisselerini teknik indikatörler ve Scikit-Learn tabanlı Makine Öğrenmesi (Random Forest) modelleriyle analiz eden, modern, karanlık ve aydınlık tema destekli yeni nesil finansal analiz platformu.
+Borsa İstanbul (BIST) hisselerini teknik indikatörler ve Scikit-Learn tabanlı Makine Öğrenmesi (Random Forest) modelleriyle analiz eden, profesyonel finansal paneli, karanlık/aydınlık tema desteği, Docker orkestrasyonu ve CI/CD hattıyla eksiksiz yeni nesil finansal analiz platformu.
 
 ---
 
-## 🚀 Arayüzü Hemen Görmek İçin Ne Yapmalısınız?
-
-Backend ve Frontend servisleri şu an geliştirme ortamınızda arka planda çalışmaktadır. Arayüzü hemen görüntülemek için:
-
-### 1. Tarayıcınızı Açın
-Tarayıcınızın adres çubuğuna şu adresi girin:
-👉 **[http://localhost:3000](http://localhost:3000)**
-
-### 2. Yapabilecekleriniz
-- **Hisse Arama:** Arama kutusuna `THYAO`, `GARAN`, `ASELS`, `EREGL`, `TUPRS`, `KCHOL` veya şirket adı yazarak 420+ BIST hissesi arasından anında arama yapın.
-- **Grafik İnceleme:** 1 Ay, 3 Ay, 6 Ay, 1 Yıl, 2 Yıl veya 5 Yıllık dönemleri seçin; SMA 20, SMA 50 ve Bollinger bantlarını açıp kapatın.
-- **Alt Göstergeler:** Grafiğin altındaki sekmeden **RSI (14)** veya **MACD** göstergelerine geçin.
-- **Yapay Zeka Analiz Kartı:** Sağ panelde modelin sonraki işlem günü için ürettiği **hedef fiyatı**, **yükseliş olasılığını** ve **teknik indikatör sinyallerini** inceleyin.
-- **Model Metrikleri:** Sağ üstteki **"Model Metrikleri"** butonuna tıklayarak modelin gerçek test seti doğruluğunu, ROC-AUC skorunu ve en önemli faktörleri görüntüleyin.
-- **Tema:** Güneş / Ay butonuna tıklayarak Karanlık veya Aydınlık temaya geçin.
+## 📌 İçindekiler
+1. [Hızlı Başlangıç & Arayüzü Görüntüleme](#-hızlı-başlangıç--arayüzü-görüntüleme)
+2. [Docker & Konteyner Yönetimi (Docker Desktop)](#-docker--konteyner-yönetimi-docker-desktop)
+3. [Sistem Mimarisi ve Veri Akışı](#-sistem-mimarisi-ve-veri-akışı)
+4. [BIST Hisseleri Kapsamı ve Eğitim Metodolojisi](#-bist-hisseleri-kapsamı-ve-eğitim-metodolojisi)
+5. [Teknik İndikatörlerin Matematiksel Formülleri](#-teknik-indikatörlerin-matematiksel-formülleri)
+6. [Makine Öğrenmesi (ML) Derinlemesine Tasarımı](#-makine-öğrenmesi-ml-derinlemesine-tasarımı)
+7. [FastAPI REST API Dökümantasyonu](#-fastapi-rest-api-dökümantasyonu)
+8. [Next.js 15 Frontend Mimarisi](#-nextjs-15-frontend-mimarisi)
+9. [Finansal İndikatörler ve AI Terimleri Sözlüğü](#-finansal-indikatörler-ve-ai-terimleri-sözlüğü)
+10. [CI/CD (GitHub Actions) Boru Hattı](#-cicd-github-actions-boru-hattı)
+11. [Yasal Uyarı (YTD)](#-yasal-uyarı-ytd)
 
 ---
 
-## 🛠️ Proje Mimarisi & Geliştirme Günlüğü (Vibe Coding Guide)
+## 🚀 Hızlı Başlangıç & Arayüzü Görüntüleme
 
-Bu proje modüler bir mimariyle, her aşaması test edilerek adım adım inşa edilmiştir:
+Proje şu anda Docker konteynerleri üzerinde izole bir şekilde çalışmaktadır.
 
-```text
-/Hisse_Senedi_Analiz_Paneli
-  ├── /backend
-  │    ├── data_pipeline.py      # yfinance ile veri çekme, temizleme, indikatörler (SMA, RSI, MACD, BB, ATR)
-  │    ├── bist_tickers.py       # 420+ BIST hissesi ve Türkçe duyarsız hızlı arama
-  │    ├── ml_model.py           # RandomForest Regressor & Classifier (Holdout test, feature importance)
-  │    ├── main.py               # FastAPI REST API (Pydantic şemaları, CORS, TTL önbellek)
-  │    ├── requirements.txt      # Python üretim bağımlılıkları
-  │    ├── requirements-dev.txt  # Pytest ve geliştirme bağımlılıkları
-  │    ├── Dockerfile            # Python 3.11-slim backend imajı
-  │    └── /tests                # Pytest birim ve API test paketi (12 test)
-  ├── /frontend
-  │    ├── /src/components       # Navbar, TickerSearch, StockHeader, StockChart, PredictionCard, ModelInfoModal
-  │    ├── /src/lib/api.ts       # Type-safe FastAPI istemcisi
-  │    ├── /src/types/stock.ts   # TypeScript arayüz ve tipleri
-  │    ├── /src/app              # Next.js 15 App Router ve Tailwind CSS stilleri
-  │    ├── package.json          # Next.js, React 19, Recharts, Lucide Icons
-  │    └── Dockerfile            # Node.js 20 multi-stage üretim imajı
-  ├── docker-compose.yml         # Tek komutla orkestrasyon
-  └── .github/workflows/ci.yml   # GitHub Actions CI/CD iş akışı
-```
+### 1. Tarayıcınızda Açın:
+👉 **[http://localhost:3000](http://localhost:3000)** (Frontend Paneli)  
+👉 **[http://localhost:8000/docs](http://localhost:8000/docs)** (FastAPI Swagger Dokümantasyonu)
+
+### 2. Arayüz Özellikleri:
+- **420+ BIST Hissesi Arama:** Arama kutusuna `THYAO`, `GARAN`, `ASELS`, `EREGL`, `TUPRS`, `KCHOL`, `BIMAS` vb. yazarak arama yapabilirsiniz. Türkçe karakter duyarsız arama şirketin unvanını veya hisse kodunu anında bulur.
+- **İnteraktif Grafik Paneli:** 1 Ay, 3 Ay, 6 Ay, 1 Yıl, 2 Yıl veya 5 Yıl seçenekleri; SMA 20, SMA 50 ve Bollinger bantlarını tek tıkla açıp kapatma.
+- **Alt Osilatörler:** Grafiğin altındaki sekmeden **RSI (14)** (aşırı alım 70 / aşırı satım 30 çizgileriyle) veya **MACD** (çizgiler ve renkli histogram barları) arasında geçiş.
+- **Yapay Zeka Analiz Kartı:**
+  - 1 gün sonrası için **hedef kapanış fiyatı** ve **yüzdesel değişim beklentisi**,
+  - Karar ağaçlarının oylamasına dayalı **%10-%90 Güven Aralığı (En Düşük - En Yüksek)**,
+  - **Yükseliş Olasılığı (Directional Probability %)** göstergesi,
+  - 5 adet kural tabanlı teknik indikatör sinyali (AL / SAT / NÖTR).
+- **Finansal Terimler Sözlüğü:** Sağ üstteki **"Terimler Sözlüğü"** butonuna basarak tüm indikatörlerin (RSI, MACD, Bollinger, SMA, ATR, MAE, ROC-AUC) formüllerini ve yorumlama kurallarını görüntüleyebilirsiniz.
+- **Model Metrikleri Penceresi:** Sağ üstteki **"Model Metrikleri"** butonundan holdout test seti doğruluk oranlarını ve karar ağaçlarında en etkili özellikleri inceleyebilirsiniz.
+- **Karanlık / Aydınlık Tema:** Sağ üstteki Ay/Güneş butonuna tıklayarak temayı değiştirebilirsiniz.
 
 ---
 
-## 🧠 Proje Ne Yapıyor, Nasıl Yapıyor, Ne Aracılığıyla Yapıyor?
+## 🐳 Docker & Konteyner Yönetimi (Docker Desktop)
 
-### 1. Ne Yapıyor? (Amaç ve Kapsam)
-BIST hisselerinin (örn. `THYAO.IS`, `GARAN.IS`) son 5 yıllık geçmiş verilerini analiz ederek:
-- Trend yönünü (Yükseliş / Düşüş / Nötr) belirler,
-- Sonraki işlem günü için hedef kapanış fiyatını ve %10-%90 güven aralığını hesaplar,
-- RSI, MACD, Bollinger Bantları, SMA 20/50 ve ATR göstergelerini çıkarır,
-- Kullanıcıya interaktif ve profesyonel bir panel sunar.
+Proje Docker orkestrasyonuyla yapılandırılmıştır.
 
-### 2. Nasıl Yapıyor? (Yöntem & Matematiksel Altyapı)
-- **Veri Boru Hattı:** Ham veriler çekildikten sonra eksik günler `ffill/bfill` ile onarılır, sıfır veya negatif fiyatlar ayıklanır.
-- **Ölçekten Bağımsız Özellikler:** Model, ham TL fiyatları yerine oranları ve yüzdeleri öğrenir (örn. `Close / SMA_20 - 1`, `RSI / 100`, `MACD / Close`, BIST100 endeksine göre göreceli güç `rel_strength_20`). Bu sayede tek bir genel model tüm BIST hisselerinde çalışabilir.
-- **Zaman Serisi Holdout Testi:** Veri seti rastgele karıştırılmaz (veri sızıntısı engellenir); her hisse için ilk %80 eğitim, son %20 holdout test seti olarak ayrılır.
-- **İki Katmanlı Model:**
-  1. `RandomForestRegressor`: Ertesi günün getirisini tahmin eder.
-  2. `RandomForestClassifier`: Yükseliş olasılığını (`probability_up`) tahmin eder.
+### Docker Desktop'ta Ne Görünür?
+Docker Desktop uygulamasını açtığınızda **Containers** sekmesinde aşağıdaki konteynerleri yeşil **"Running"** durumunda görürsünüz:
+1. `bist-frontend` (Port: `3000:3000` - Next.js 15 Production Sunucusu)
+2. `bist-backend` (Port: `8000:8000` - FastAPI & Uvicorn Python Sunucusu)
+3. Volume: `bist_model_cache` (Eğitilmiş `model.pkl` dosyasının kalıcı olarak saklandığı Docker hacmi)
 
-### 3. Ne Aracılığıyla Yapıyor? (Tech Stack)
-| Alan | Kullanılan Teknolojiler |
-|---|---|
-| **Veri & İndikatörler** | `yfinance`, `pandas`, `numpy` |
-| **Makine Öğrenmesi** | `scikit-learn` (Random Forest), `joblib` |
-| **Backend API** | `FastAPI`, `uvicorn`, `pydantic` |
-| **Frontend UI** | `Next.js 15` (App Router), `TypeScript`, `Tailwind CSS`, `Recharts`, `Lucide React` |
-| **Altyapı & Dağıtım** | `Docker`, `docker-compose`, `GitHub Actions CI/CD` |
-
----
-
-## ⚡ Yerel Olarak Çalıştırma
-
-### Yöntem A: Doğrudan Ortamınızda Çalıştırma
-
-#### 1. Backend'i Başlatın:
+### Docker Komutları:
 ```bash
-cd backend
-python -m venv .venv
-.\.venv\Scripts\activate   # Windows (Linux/Mac: source .venv/bin/activate)
-pip install -r requirements-dev.txt
+# Konteynerleri başlatma (arka planda)
+docker compose up -d
 
-# Testleri çalıştırın (12 test)
-pytest -q tests
+# İmajları yeniden derleyerek başlatma
+docker compose up -d --build
 
-# API sunucusunu başlatın
-uvicorn main:app --reload --port 8000
+# Çalışan konteynerleri listeleme
+docker compose ps
+
+# Canlı logları izleme
+docker compose logs -f
+
+# Konteynerleri durdurma
+docker compose down
 ```
-API Dokümantasyonu: **[http://localhost:8000/docs](http://localhost:8000/docs)**
-
-#### 2. Frontend'i Başlatın:
-```bash
-cd frontend
-npm install
-npm run dev -- -p 3000
-```
-Uygulama: **[http://localhost:3000](http://localhost:3000)**
 
 ---
 
-### Yöntem B: Docker & Docker Compose ile Tek Tuşla Çalıştırma
+## 🏗️ Sistem Mimarisi ve Veri Akışı
 
-```bash
-docker compose up --build
 ```
-Bu komut hem backend'i (`8000:8000`) hem de frontend'i (`3000:3000`) izole konteynerlar içinde ayağa kaldırır ve modeli `bist_model_cache` hacminde kalıcı olarak saklar.
+[ Borsa İstanbul (yfinance API) ]
+                 │
+                 ▼
+[ Data Pipeline (backend/data_pipeline.py) ]
+  ├── Eksik Veri Temizleme (ffill/bfill, aykırı değer filtresi)
+  ├── İndikatör Hesaplama (SMA 20/50, RSI 14, MACD, Bollinger, ATR)
+  └── TTL Önbellekleme (15 dk bellek içi önbellek)
+                 │
+                 ▼
+[ ML Engine (backend/ml_model.py) ]
+  ├── 21 Ölçekten Bağımsız Özellik Çıkarımı
+  ├── BIST 100 Endeks Verisiyle Piyasa Bağlamı (Beta & Alpha)
+  ├── RandomForestRegressor (Fiyat Tahmini & %10-%90 Güven Aralığı)
+  └── RandomForestClassifier (Yükseliş Olasılığı: Bullish/Bearish/Neutral)
+                 │
+                 ▼
+[ FastAPI Backend (backend/main.py - Port: 8000) ]
+  ├── GET /api/tickers (420+ BIST hissesi otomatik tamamlama)
+  ├── GET /api/historical/{ticker} (OHLCV + İndikatör Serileri)
+  ├── GET /api/predict/{ticker} (Yapay Zeka Tahmin Yanıtı)
+  └── GET /api/model/info (Holdout Metrikleri & Özellik Önemleri)
+                 │
+                 ▼
+[ Next.js 15 Frontend (frontend/ - Port: 3000) ]
+  ├── Recharts İnteraktif Mum / Çizgi / Osilatör Grafikleri
+  ├── Karanlık & Aydınlık Tema Sistemi (@custom-variant dark)
+  ├── Terimler Sözlüğü Modalı & İnteraktif İpuçları
+  └── Yapay Zeka Tahmin Kartı
+```
 
 ---
 
-## 📡 API Endpoint Referansı
+## 📊 BIST Hisseleri Kapsamı ve Eğitim Metodolojisi
 
-| Metot | Endpoint | Açıklama |
+### Soru: BIST Hisselerinin Tamamı Ekli mi ve Nasıl Eğitildi?
+1. **Tüm Hisseler Sistemde Tanımlıdır:**  
+   `backend/bist_tickers.py` dosyasında Borsa İstanbul'da işlem gören **420'den fazla şirket** eksiksiz olarak kayıtlıdır. Arama motorunda dilediğiniz hisseyi yazıp anında geçmiş verisini ve yapay zeka analizini çağırabilirsiniz.
+
+2. **Neden BIST30 ile Eğitilip Tüm Hisselerde Kullanılıyor?**
+   - **Ölçekten Bağımsız Özellikler:** Model eğitilirken TL cinsinden hisse fiyatları verilmez. Çünkü 10 TL'lik bir hisse ile 400 TL'lik bir hissenin mutlak fiyatları kıyaslanamaz. Bunun yerine model, **getiri oranları (`ret_1`, `ret_20`), fiyata oranlanmış hareketli ortalamalar (`Close / SMA - 1`), normalize MACD (`MACD / Close`), RSI ve endekse göre göreceli güç (`rel_strength_20`)** gibi evrensel oranları öğrenir.
+   - **Gürültüsüz (Robust) Veri:** BIST30 hisseleri (THYAO, GARAN, ASELS, BIMAS, EREGL vb.) piyasanın en likit, işlem hacmi en yüksek ve derinlikli hisseleridir. Spekülatif tavan-taban manipülasyonlarından en uzaktır. Model bu havuzda **30.000'den fazla işlem gününü** inceleyerek sağlıklı piyasa rejimlerini öğrenir.
+   - **Genellenebilirlik:** Eğitilen bu model, Borsa İstanbul'daki **tüm 420+ hisseye** girdiğinde o hissenin anlık teknik oranlarını değerlendirir ve hisseye özel hedef fiyat ile yükseliş olasılığı üretir.
+
+---
+
+## 📐 Teknik İndikatörlerin Matematiksel Formülleri
+
+### 1. Basit Hareketli Ortalama (SMA)
+$$SMA_N = \frac{1}{N} \sum_{i=0}^{N-1} Close_{t-i}$$
+- **SMA 20:** Son 20 işlem gününün (yaklaşık 1 ay) ortalamasıdır. Kısa vadeli trend desteğidir.
+- **SMA 50:** Son 50 işlem gününün (yaklaşık 2.5 ay) ortalamasıdır. Ana trend yönünü belirler.
+- **Golden Cross:** $SMA_{20} > SMA_{50}$ olduğunda yükseliş trendi teyit edilir.
+
+### 2. Göreceli Güç Endeksi (RSI 14)
+$$RSI = 100 - \left( \frac{100}{1 + RS} \right), \quad RS = \frac{\text{WilderEMA}(Gain, 14)}{\text{WilderEMA}(Loss, 14)}$$
+- $RSI \ge 70$: **Aşırı Alım (Overbought)**. Fiyat sert yükselmiştir, kâr satışı ve düzeltme riski yüksektir.
+- $RSI \le 30$: **Aşırı Satım (Oversold)**. Fiyat sert düşmüştür, tepki alımı ve dip dönüşü potansiyeli yüksektir.
+
+### 3. Hareketli Ortalama Yakınsama / Iraksama (MACD)
+$$MACD = EMA_{12}(Close) - EMA_{26}(Close)$$
+$$Signal = EMA_9(MACD)$$
+$$Histogram = MACD - Signal$$
+- Histogram $> 0$ (Yeşil Barlar): Boğa momentumu güçleniyor.
+- Histogram $< 0$ (Kırmızı Barlar): Ayı momentumu baskın.
+
+### 4. Bollinger Bantları (%B)
+$$Middle = SMA_{20}(Close), \quad \sigma = \text{StdDev}_{20}(Close)$$
+$$Upper = Middle + 2\sigma, \quad Lower = Middle - 2\sigma$$
+$$\%B = \frac{Close - Lower}{Upper - Lower}$$
+- $\%B > 1$: Fiyat üst bandın üzerine taşmıştır (istatistiki aşırı değerlenme).
+- $\%B < 0$: Fiyat alt bandın altına inmiştir (istatistiki ucuzluk).
+
+### 5. Ortalama Gerçek Aralık (ATR 14)
+$$TR = \max(High - Low, |High - Close_{t-1}|, |Low - Close_{t-1}|)$$
+$$ATR_{14} = \text{WilderEMA}(TR, 14)$$
+Hissenin günlük fiyat dalgalanma boyunu ölçer. Volatiliteye göre stop-loss seviyesi belirlemede ve modelde normalize oynaklık ölçümünde kullanılır.
+
+---
+
+## 🤖 Makine Öğrenmesi (ML) Derinlemesine Tasarımı
+
+### 1. Hedef Değişken (Target Variable)
+Model $t$ günündeki kapanışta, sonraki günün ($t+1$) kapanış getirisini hedefler:
+$$TargetReturn = \frac{Close_{t+1}}{Close_t} - 1, \quad TargetUp = \begin{cases} 1 & \text{eğer } TargetReturn > 0 \\ 0 & \text{aksi halde} \end{cases}$$
+Tahmini fiyat ise şu şekilde hesaplanır:
+$$PredictedPrice = Close_t \times (1 + \widehat{TargetReturn})$$
+
+### 2. Kullanılan 21 Model Özelliği (Features)
+| Özellik | Açıklama | Finansal Anlamı |
 |---|---|---|
-| `GET` | `/api/health` | Servis ve ML model hazır olma durumu |
-| `GET` | `/api/tickers?q=thy` | BIST hisse arama (otomatik tamamlama) |
-| `GET` | `/api/historical/{ticker}?period=1y` | OHLCV, SMA, RSI, MACD, Bollinger verileri |
-| `GET` | `/api/predict/{ticker}` | Fiyat tahmini, trend, güven aralığı ve sinyaller |
-| `GET` | `/api/model/info` | Holdout doğruluk metrikleri ve özellik önemleri |
-| `POST` | `/api/model/train` | Modeli arka planda yeniden eğitme tetikleyicisi |
+| `ret_1`, `ret_5`, `ret_10`, `ret_20` | 1, 5, 10, 20 günlük yüzde getiriler | Fiyat momentumu ve ivmesi |
+| `close_sma20`, `close_sma50` | Fiyatın ortalamalara mesafesi | Aşırı uzama ve ortalamaya dönüş potansiyeli |
+| `sma20_sma50` | $SMA_{20} / SMA_{50} - 1$ | Trend yönü (Golden/Death Cross) |
+| `rsi` | RSI 14 / 100 | Momentum osilatörü |
+| `macd_n`, `macd_signal_n`, `macd_hist_n` | Fiyata bölünmüş MACD bileşenleri | İvme ve kesişim gücü |
+| `bb_pct` | Bollinger %B konumu | İstatistiki volatilite bandındaki yer |
+| `volatility_10` | 10 günlük logaritmik oynaklık | Tarihsel dalgalanma şiddeti |
+| `atr_n` | ATR 14 / Close | Normalize günlük dalga boyu |
+| `hl_range` | $(High - Low) / Close$ | Gün içi alıcı/satıcı savaş marjı |
+| `volume_ratio` | Hacim / 20 Günlük Ort. Hacim - 1 | Hacim patlaması ve kurumsal para akışı |
+| `mkt_ret_1`, `mkt_ret_5`, `mkt_ret_20` | BIST 100 endeksi getirileri | Genel piyasa boğa/ayı rejimi |
+| `mkt_close_sma50` | Endeksin 50 günlük ortalamasına oranı | BIST 100 makro trendi |
+| `rel_strength_20` | `ret_20 - mkt_ret_20` | Hissenin endekse göre göreceli gücü (Alpha) |
+
+### 3. Zaman Serisi Holdout Testi (Veri Sızıntısını Önleme)
+Finansal verilerde standart rastgele karıştırma (random shuffle veya standart k-fold) **asla kullanılamaz**; çünkü bu durum geleceğin verisinin geçmişe sızmasına (lookahead bias / data leakage) yol açar.  
+Projede her hisse için:
+- **İlk %80 dilim:** Model eğitimi kümesi (Training Set)
+- **Son %20 dilim:** Kronolojik holdout test seti (Test Set)  
+Metrikler sadece modelin daha önce hiç görmediği bu son %20'lik test periyodunda hesaplanır.
+
+### 4. Model Holdout Başarı Sonuçları
+- **Test Kümesi Hacmi:** 6.864 işlem günü (holdout)
+- **Güvenli Sinyal Başarısı ($p \ge 0.55$ veya $p \le 0.45$):** **%52.3**
+- **ROC-AUC Skoru:** **0.507**
+- **Ortalama Fiyat Sapması (MAE):** **2.82 TL**
+- **Yükseliş Sinyali Verildiğinde Ort. Getiri:** **+%0.20** (Tüm günlerin ortalaması: +%0.03)
 
 ---
 
-## 🛡️ CI/CD Entegrasyonu
+## 🔌 FastAPI REST API Dökümantasyonu
 
-`.github/workflows/ci.yml` dosyasında yapılandırılmış GitHub Actions iş akışı her `push` ve `pull_request` işleminde otomatik olarak:
-1. Python 3.11 üzerinde backend birim ve API testlerini (`pytest`) çalıştırır.
-2. Node.js 20 üzerinde Next.js derlemesini (`npm run build`) doğrular.
-3. Docker Compose sözdizimini kontrol eder.
+API varsayılan olarak `http://localhost:8000` portunda çalışır.
+
+### Endpoint Listesi:
+| Metot | Endpoint | Parametreler | Açıklama |
+|---|---|---|---|
+| `GET` | `/api/health` | - | Servis ve ML model hazır olma durumu |
+| `GET` | `/api/tickers` | `q` (arama metni), `limit` | BIST hisse arama (otomatik tamamlama) |
+| `GET` | `/api/historical/{ticker}` | `ticker`, `period` (1mo, 3mo, 6mo, 1y, 2y, 5y) | OHLCV fiyatları, SMA, RSI, MACD, Bollinger serileri |
+| `GET` | `/api/predict/{ticker}` | `ticker` | Fiyat tahmini, trend, güven aralığı ve 5 teknik sinyal |
+| `GET` | `/api/model/info` | - | Holdout test metrikleri ve özellik önemleri |
+| `POST` | `/api/model/train` | - | Modeli arka planda yeniden eğitme tetikleyicisi |
+
+### Örnek cURL İstekleri:
+```bash
+# 1. Hisse Arama
+curl "http://localhost:8000/api/tickers?q=garan"
+
+# 2. Geçmiş Veri ve İndikatörler
+curl "http://localhost:8000/api/historical/THYAO.IS?period=1y"
+
+# 3. Yapay Zeka Tahmini
+curl "http://localhost:8000/api/predict/THYAO.IS"
+```
+
+---
+
+## 🎨 Next.js 15 Frontend Mimarisi
+
+- **Framework:** Next.js 15 (App Router, Turbopack, TypeScript)
+- **Stil & Tasarım:** Tailwind CSS v4 (`@custom-variant dark` ile senkronize tema yönetimi)
+- **Grafik Kütüphanesi:** Recharts (ComposedChart, Area, Line, Bar, ReferenceLine)
+- **İkon Seti:** Lucide React
+- **Bileşen Yapısı:**
+  - `Navbar.tsx`: Marka logosu, BIST hisse kapsamı etiketi, Terimler Sözlüğü butonu, Model Metrikleri butonu, Açık/Koyu tema anahtarı.
+  - `TickerSearch.tsx`: Klavye yön tuşlarıyla gezilebilen debounced hisse arama kutusu ve hızlı BIST30 seçim hapları.
+  - `StockHeader.tsx`: Hisse kodu, şirket unvanı, anlık fiyat, günlük değişim, 52 haftalık en yüksek/en düşük istatistikleri.
+  - `StockChart.tsx`: Periyot seçici, indikatör açma/kapama butonları, fiyat grafiği ve alt RSI/MACD osilatör paneli.
+  - `PredictionCard.tsx`: Hedef fiyat, güven aralığı, yön olasılığı ve 5 kural tabanlı teknik indikatör sinyali.
+  - `GlossaryModal.tsx`: Arama yapılabilen, formülleri ve yorumlama kurallarını içeren interaktif finans sözlüğü.
+  - `ModelInfoModal.tsx`: Karar ağaçlarının holdout test sonuçları, veri kümesi detayları ve Türkçe özellik önemleri.
+
+---
+
+## 📖 Finansal İndikatörler ve AI Terimleri Sözlüğü
+
+| Terim | Açıklama | Nasıl Yorumlanır? |
+|---|---|---|
+| **RSI (14)** | Relative Strength Index (Göreceli Güç Endeksi) | 70 üzeri: Aşırı Alım (Düzeltme Riski), 30 altı: Aşırı Satım (Tepki Alımı Fırsatı) |
+| **MACD** | Hareketli Ortalama Yakınsama/Iraksama | MACD çizgisi sinyali yukarı kestiğinde AL, aşağı kestiğinde SAT |
+| **SMA 20 & 50** | 20 ve 50 Günlük Basit Hareketli Ortalama | Fiyat ortalamaların üzerindeyse yükseliş trendi teyit edilir |
+| **Golden Cross** | SMA 20'nin SMA 50'yi yukarı kesmesi | Güçlü orta vadeli yükseliş trendi başlangıcı |
+| **Death Cross** | SMA 20'nin SMA 50'yi aşağı kesmesi | Düşüş trendi başlangıcı |
+| **Bollinger %B** | Fiyatın Bollinger bantlarındaki göreceli yeri | 1 üzeri aşırı pahalı, 0 altı aşırı ucuz |
+| **ATR (14)** | Ortalama Gerçek Fiyat Dalgalanma Aralığı | Hissenin oynaklığını ölçer; stop-loss belirlemede kullanılır |
+| **Directional Probability** | Yükseliş Yön Olasılığı (%) | Model ağaçlarının yukarı yönlü oy oranı (≥%55 Bullish, ≤%45 Bearish) |
+| **ROC-AUC** | Modelin Sınıflandırma Başarı Alanı | 0.50 rastgele tahmin (yazı-tura), >0.50 pozitif tahmin kabiliyeti |
+| **MAE** | Ortalama Mutlak Hata (TL) | Tahmin edilen fiyat ile gerçekleşen fiyat arasındaki TL farkı |
+
+---
+
+## 🛠️ CI/CD (GitHub Actions) Boru Hattı
+
+`.github/workflows/ci.yml` dosyasında yapılandırılmış iş akışı, GitHub deposuna yapılan her `push` ve `pull_request` işleminde otomatik olarak şu 3 adımı test eder:
+1. **Backend Testleri:** Python 3.11 üzerinde 12 adet Pytest birim ve API testini çalıştırır.
+2. **Frontend Derlemesi:** Node.js 20 üzerinde Next.js TypeScript ve Turbopack derlemesini (`npm run build`) denetler.
+3. **Docker Doğrulaması:** `docker compose config` ile orkestrasyon dosyalarının sözdizimi doğruluğunu garanti altına alır.
 
 ---
 
 ## ⚠️ Yasal Uyarı (YTD)
 
-Bu yazılımda sunulan tüm veriler, teknik göstergeler ve yapay zeka tahminleri eğitim ve araştırma amaçlıdır. **Kesinlikle yatırım tavsiyesi niteliğinde değildir.** Gerçek finansal kararlar almadan önce lisanslı yatırım danışmanlarına başvurunuz.
+Bu yazılımda ve arayüzde yer alan tüm grafikler, teknik göstergeler, fiyat analizleri ve makine öğrenmesi tahminleri tamamen eğitim, araştırma ve algoritmik modelleme amaçlıdır. **Kesinlikle yatırım tavsiyesi (YTD) niteliğinde değildir.** Gerçek finansal kararlar almadan önce Sermaye Piyasası Kurulu (SPK) lisanslı yatırım danışmanlarına başvurunuz.

@@ -8,12 +8,12 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL_PATH=/app/model.pkl
+      - MODEL_PATH=/app/data/model.pkl
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
       - DATA_CACHE_TTL=900
       - AUTO_TRAIN=1
     volumes:
-      - backend_models:/app
+      - backend_models:/app/data
     networks:
       - bist-network
 

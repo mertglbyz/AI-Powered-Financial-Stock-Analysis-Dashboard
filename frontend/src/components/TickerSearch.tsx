@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search, X, TrendingUp } from "lucide-react";
+import { Search, X, TrendingUp, Sparkles } from "lucide-react";
 import { TickerItem } from "@/types/stock";
 import { searchTickers } from "@/lib/api";
 
@@ -50,7 +50,7 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
       } finally {
         setIsSearching(false);
       }
-    }, 200);
+    }, 180);
 
     return () => clearTimeout(timer);
   }, [query, isOpen]);
@@ -124,8 +124,8 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Hisse ara (örn: THYAO, Garanti, Aselsan, EREGL)..."
-            className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:text-slate-100 placeholder-slate-400 shadow-sm transition"
+            placeholder="420+ BIST hissesi içinde ara (örn: THYAO, Garanti, Aselsan, EREGL)..."
+            className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 text-slate-900 dark:text-white placeholder-slate-400 shadow-sm transition"
           />
           {query && (
             <button
@@ -142,7 +142,7 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
 
         {/* Suggestion Dropdown */}
         {isOpen && (
-          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-80 overflow-y-auto rounded-xl glass-panel shadow-2xl border border-slate-200 dark:border-slate-800 py-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 max-h-80 overflow-y-auto rounded-xl card-panel shadow-2xl py-1.5 animate-in fade-in slide-in-from-top-1 duration-150">
             {isSearching ? (
               <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 text-center">
                 Aranıyor...
@@ -154,26 +154,26 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
                   onClick={() => handleSelect(item.symbol)}
                   className={`w-full px-4 py-2.5 text-left flex items-center justify-between text-sm transition ${
                     idx === selectedIndex
-                      ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
-                      : "hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300"
+                      ? "bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-semibold text-slate-900 dark:text-white">
+                    <span className="font-bold text-slate-900 dark:text-white">
                       {item.code}
                     </span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
                       {item.name}
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider shrink-0 ml-2">
                     BIST
                   </span>
                 </button>
               ))
             ) : (
               <div className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400 text-center">
-                {query ? `"${query}" ile eşleşen hisse bulunamadı.` : "Aramak için hisse adı veya kodu yazın."}
+                {query ? `"${query}" ile eşleşen hisse bulunamadı.` : "Aramak için hisse kodu veya şirket adı yazın."}
               </div>
             )}
           </div>
@@ -183,8 +183,8 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
       {/* Quick Ticker Chips */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mr-1">
-          <TrendingUp className="w-3 h-3" />
-          Popüler:
+          <TrendingUp className="w-3 h-3 text-emerald-500" />
+          Hızlı Seçim:
         </span>
         {QUICK_TICKERS.map((t) => {
           const isSelected = cleanCurrentCode === t;
@@ -193,10 +193,10 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
               key={t}
               onClick={() => onSelectTicker(t)}
               disabled={isLoading && isSelected}
-              className={`px-2.5 py-1 text-xs rounded-lg font-medium transition ${
+              className={`px-2.5 py-1 text-xs rounded-lg font-semibold transition ${
                 isSelected
                   ? "bg-blue-600 text-white shadow-sm shadow-blue-500/30"
-                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800"
+                  : "bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
               }`}
             >
               {t}

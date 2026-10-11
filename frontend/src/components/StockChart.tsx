@@ -14,12 +14,13 @@ import {
   ReferenceLine,
 } from "recharts";
 import { PeriodType, StockDataPoint } from "@/types/stock";
-import { SlidersHorizontal, TrendingUp } from "lucide-react";
+import { SlidersHorizontal, Info, HelpCircle } from "lucide-react";
 
 interface StockChartProps {
   data: StockDataPoint[];
   period: PeriodType;
   onPeriodChange: (period: PeriodType) => void;
+  onOpenGlossary?: () => void;
   darkMode?: boolean;
 }
 
@@ -36,6 +37,7 @@ export const StockChart: React.FC<StockChartProps> = ({
   data,
   period,
   onPeriodChange,
+  onOpenGlossary,
   darkMode = true,
 }) => {
   const [showSMA20, setShowSMA20] = useState(true);
@@ -45,8 +47,8 @@ export const StockChart: React.FC<StockChartProps> = ({
 
   if (!data || data.length === 0) {
     return (
-      <div className="glass-panel rounded-2xl p-8 flex items-center justify-center min-h-[400px]">
-        <p className="text-sm text-slate-400">Grafik verisi yüklenemedi.</p>
+      <div className="card-panel rounded-2xl p-8 flex items-center justify-center min-h-[400px]">
+        <p className="text-xs text-slate-400">Grafik verisi yüklenemedi.</p>
       </div>
     );
   }
@@ -65,19 +67,19 @@ export const StockChart: React.FC<StockChartProps> = ({
   const axisColor = darkMode ? "#64748b" : "#94a3b8";
 
   return (
-    <div className="glass-panel rounded-2xl p-5 sm:p-6 space-y-6 border border-slate-200 dark:border-slate-800">
+    <div className="card-panel rounded-2xl p-5 sm:p-6 space-y-6">
       {/* Chart Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Period Buttons */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 self-start">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 self-start">
           {PERIODS.map((p) => (
             <button
               key={p.key}
               onClick={() => onPeriodChange(p.key)}
               className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
                 period === p.key
-                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-300"
+                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               {p.label}
@@ -87,17 +89,18 @@ export const StockChart: React.FC<StockChartProps> = ({
 
         {/* Indicators Toggle */}
         <div className="flex items-center gap-2 flex-wrap text-xs">
-          <span className="text-slate-400 flex items-center gap-1 text-[11px] font-medium mr-1">
+          <span className="text-slate-400 dark:text-slate-500 flex items-center gap-1 text-[11px] font-medium mr-1">
             <SlidersHorizontal className="w-3 h-3" />
             İndikatörler:
           </span>
 
           <button
             onClick={() => setShowSMA20(!showSMA20)}
+            title="SMA 20: 20 günlük basit hareketli ortalama (kısa vadeli trend)"
             className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
               showSMA20
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
-                : "border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600"
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold"
+                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
             }`}
           >
             <span className="w-2 h-0.5 bg-amber-500 rounded" />
@@ -106,10 +109,11 @@ export const StockChart: React.FC<StockChartProps> = ({
 
           <button
             onClick={() => setShowSMA50(!showSMA50)}
+            title="SMA 50: 50 günlük basit hareketli ortalama (orta vadeli ana trend)"
             className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
               showSMA50
-                ? "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400"
-                : "border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600"
+                ? "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 font-semibold"
+                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
             }`}
           >
             <span className="w-2 h-0.5 bg-sky-500 rounded" />
@@ -118,10 +122,11 @@ export const StockChart: React.FC<StockChartProps> = ({
 
           <button
             onClick={() => setShowBollinger(!showBollinger)}
+            title="Bollinger: 20 günlük ortalamaya 2 standart sapma mesafedeki alt ve üst volatilite bantları"
             className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
               showBollinger
-                ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400"
-                : "border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-600"
+                ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400 font-semibold"
+                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
             }`}
           >
             <span className="w-2 h-0.5 bg-purple-500 rounded" />
@@ -136,7 +141,7 @@ export const StockChart: React.FC<StockChartProps> = ({
           <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
               </linearGradient>
             </defs>
@@ -166,8 +171,8 @@ export const StockChart: React.FC<StockChartProps> = ({
                 if (!active || !payload || !payload.length) return null;
                 const d = payload[0].payload as StockDataPoint;
                 return (
-                  <div className="glass-panel rounded-xl p-3 shadow-xl text-xs space-y-1.5 border border-slate-200 dark:border-slate-800">
-                    <p className="font-semibold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-1">
+                  <div className="card-panel rounded-xl p-3 text-xs space-y-1.5 shadow-xl">
+                    <p className="font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-1">
                       {d.date}
                     </p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-600 dark:text-slate-300">
@@ -175,9 +180,9 @@ export const StockChart: React.FC<StockChartProps> = ({
                       <span>Açılış: ₺{d.open.toFixed(2)}</span>
                       <span>En Yüksek: ₺{d.high.toFixed(2)}</span>
                       <span>En Düşük: ₺{d.low.toFixed(2)}</span>
-                      {showSMA20 && <span className="text-amber-500 font-medium">SMA 20: ₺{d.sma_20.toFixed(2)}</span>}
-                      {showSMA50 && <span className="text-sky-500 font-medium">SMA 50: ₺{d.sma_50.toFixed(2)}</span>}
-                      <span>RSI: {d.rsi_14.toFixed(1)}</span>
+                      {showSMA20 && <span className="text-amber-500 font-semibold">SMA 20: ₺{d.sma_20.toFixed(2)}</span>}
+                      {showSMA50 && <span className="text-sky-500 font-semibold">SMA 50: ₺{d.sma_50.toFixed(2)}</span>}
+                      <span>RSI (14): {d.rsi_14.toFixed(1)}</span>
                       <span>MACD: {d.macd.toFixed(3)}</span>
                     </div>
                   </div>
@@ -248,35 +253,49 @@ export const StockChart: React.FC<StockChartProps> = ({
       </div>
 
       {/* Sub-Chart (RSI / MACD) Selector & View */}
-      <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+      <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5 p-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setSubChart("RSI")}
-              className={`px-2.5 py-0.5 text-xs font-semibold rounded-md transition ${
+              title="Göreceli Güç Endeksi: Aşırı alım (≥70) ve aşırı satım (≤30) bölgeleri"
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
                 subChart === "RSI"
-                  ? "bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+                  ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               RSI (14)
             </button>
             <button
               onClick={() => setSubChart("MACD")}
-              className={`px-2.5 py-0.5 text-xs font-semibold rounded-md transition ${
+              title="MACD: 12 ve 26 günlük EMA farkı ve 9 günlük sinyal çizgisi kesişimleri"
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
                 subChart === "MACD"
-                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+                  ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               MACD
             </button>
           </div>
-          <span className="text-[11px] text-slate-400">
-            {subChart === "RSI"
-              ? "Aşırı Alım: 70 | Aşırı Satım: 30"
-              : "MACD & Sinyal Çizgisi"}
-          </span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-slate-400">
+              {subChart === "RSI"
+                ? "Aşırı Alım: 70 | Aşırı Satım: 30"
+                : "Yeşil: Pozitif Momentum | Kırmızı: Negatif Momentum"}
+            </span>
+            {onOpenGlossary && (
+              <button
+                onClick={onOpenGlossary}
+                className="text-slate-400 hover:text-blue-500 transition p-1"
+                title="İndikatör detaylarını ve yorumlama kurallarını görüntüle"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="h-28 w-full">

@@ -7,19 +7,21 @@ import { StockHeader } from "@/components/StockHeader";
 import { StockChart } from "@/components/StockChart";
 import { PredictionCard } from "@/components/PredictionCard";
 import { ModelInfoModal } from "@/components/ModelInfoModal";
+import { GlossaryModal } from "@/components/GlossaryModal";
 import {
   HistoricalResponse,
   PeriodType,
   PredictionResponse,
 } from "@/types/stock";
 import { getHistorical, getPrediction, getHealth } from "@/lib/api";
-import { RotateCw, AlertCircle, Info } from "lucide-react";
+import { RotateCw, AlertCircle, Info, BookOpen, Layers } from "lucide-react";
 
 export default function DashboardPage() {
   const [ticker, setTicker] = useState<string>("THYAO.IS");
   const [period, setPeriod] = useState<PeriodType>("1y");
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [isModelModalOpen, setIsModelModalOpen] = useState<boolean>(false);
+  const [isGlossaryOpen, setIsGlossaryOpen] = useState<boolean>(false);
   const [modelReady, setModelReady] = useState<boolean>(true);
 
   // Data states
@@ -114,6 +116,7 @@ export default function DashboardPage() {
         darkMode={darkMode}
         onToggleTheme={handleToggleTheme}
         onOpenModelInfo={() => setIsModelModalOpen(true)}
+        onOpenGlossary={() => setIsGlossaryOpen(true)}
         modelReady={modelReady}
       />
 
@@ -129,7 +132,7 @@ export default function DashboardPage() {
           <button
             onClick={handleRefresh}
             disabled={isHistLoading || isPredLoading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 shadow-sm transition self-end sm:self-auto shrink-0 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 shadow-sm transition self-end sm:self-auto shrink-0 disabled:opacity-50"
           >
             <RotateCw
               className={`w-3.5 h-3.5 ${
@@ -172,10 +175,11 @@ export default function DashboardPage() {
                 data={historicalData.data}
                 period={period}
                 onPeriodChange={(p) => setPeriod(p)}
+                onOpenGlossary={() => setIsGlossaryOpen(true)}
                 darkMode={darkMode}
               />
             ) : isHistLoading ? (
-              <div className="glass-panel rounded-2xl p-12 min-h-[460px] flex flex-col items-center justify-center space-y-3">
+              <div className="card-panel rounded-2xl p-12 min-h-[460px] flex flex-col items-center justify-center space-y-3">
                 <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
                 <p className="text-xs text-slate-400">
                   {ticker} geçmiş verileri ve indikatörler yükleniyor...
@@ -191,22 +195,31 @@ export default function DashboardPage() {
               isLoading={isPredLoading}
               error={predError}
               onRetry={() => loadPrediction(ticker)}
+              onOpenGlossary={() => setIsGlossaryOpen(true)}
             />
 
             {/* Quick Helper Info Box */}
-            <div className="glass-panel rounded-2xl p-4 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 space-y-2">
-              <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300">
-                <Info className="w-3.5 h-3.5 text-blue-500" />
-                <span>Teknik Göstergeler Nasıl Okunur?</span>
+            <div className="card-panel rounded-2xl p-4 text-xs text-slate-500 dark:text-slate-400 space-y-2.5">
+              <div className="flex items-center justify-between font-semibold text-slate-700 dark:text-slate-200">
+                <div className="flex items-center gap-1.5">
+                  <Info className="w-4 h-4 text-blue-500" />
+                  <span>Teknik Göstergeler Özeti</span>
+                </div>
+                <button
+                  onClick={() => setIsGlossaryOpen(true)}
+                  className="text-blue-500 hover:underline text-[11px] font-medium"
+                >
+                  Sözlüğü Aç &rarr;
+                </button>
               </div>
               <p className="text-[11px] leading-relaxed">
-                <strong>SMA 20 & 50:</strong> 20 günlük ortalamanın 50 günlüğü yukarı kesmesi yükseliş (Golden Cross), aşağı kesmesi düşüş sinyalidir.
+                <strong>SMA 20 & 50:</strong> 20 günlük ortalamanın 50 günlüğü yukarı kesmesi yükseliş (Golden Cross), aşağı kesmesi düşüş (Death Cross) sinyalidir.
               </p>
               <p className="text-[11px] leading-relaxed">
-                <strong>RSI (14):</strong> 70 üzeri aşırı alım, 30 altı aşırı satım bölgesidir.
+                <strong>RSI (14):</strong> 70 üzeri aşırı alım bölgesi (düzeltme riski), 30 altı aşırı satım bölgesi (tepki alımı fırsatı).
               </p>
               <p className="text-[11px] leading-relaxed">
-                <strong>MACD:</strong> Histogramın sıfırın üzerine çıkması pozitif momentum işaretidir.
+                <strong>MACD:</strong> Histogram barlarının sıfırın üzerine çıkması pozitif ivme işaretidir.
               </p>
             </div>
           </div>
@@ -216,17 +229,34 @@ export default function DashboardPage() {
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© 2026 AI-Powered Financial Stock Analysis Dashboard • BIST 100</p>
-          <p className="text-[11px]">
-            FastAPI • Next.js 15 • Scikit-Learn • yfinance
-          </p>
+          <p>© 2026 AI-Powered Financial Stock Analysis Dashboard • BIST 100 & Tüm Hisseler</p>
+          <div className="flex items-center gap-4 text-[11px]">
+            <button
+              onClick={() => setIsGlossaryOpen(true)}
+              className="text-slate-400 hover:text-blue-500 transition"
+            >
+              Terimler Sözlüğü
+            </button>
+            <button
+              onClick={() => setIsModelModalOpen(true)}
+              className="text-slate-400 hover:text-blue-500 transition"
+            >
+              Model Mimarisi
+            </button>
+            <span>FastAPI • Next.js 15 • Scikit-Learn</span>
+          </div>
         </div>
       </footer>
 
-      {/* Model Information Modal */}
+      {/* Modals */}
       <ModelInfoModal
         isOpen={isModelModalOpen}
         onClose={() => setIsModelModalOpen(false)}
+      />
+
+      <GlossaryModal
+        isOpen={isGlossaryOpen}
+        onClose={() => setIsGlossaryOpen(false)}
       />
     </div>
   );
