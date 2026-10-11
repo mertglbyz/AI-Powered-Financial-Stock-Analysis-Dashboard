@@ -157,15 +157,18 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """SMA_20, SMA_50, RSI_14, MACD(+Signal/Hist), BB_Upper/BB_Lower, ATR_14 kolonlarını ekler."""
     df = df.copy()
     close = df["Close"]
-    df["SMA_20"] = compute_sma(close, 20)
-    df["SMA_50"] = compute_sma(close, 50)
-    df["RSI_14"] = compute_rsi(close, 14)
+    df["SMA_20"] = compute_sma(close, min(20, max(2, len(df))))
+    # SMA_50: 50 günden kısa veri setlerinde SMA_20'yi yedek olarak kullan
+    sma50 = compute_sma(close, 50)
+    df["SMA_50"] = sma50.fillna(df["SMA_20"])
+    df["RSI_14"] = compute_rsi(close, min(14, max(2, len(df))))
     df["MACD"], df["MACD_Signal"], df["MACD_Hist"] = compute_macd(close)
-    std20 = close.rolling(20, min_periods=20).std()
+    std20 = close.rolling(min(20, max(2, len(df))), min_periods=2).std().fillna(0.0)
     df["BB_Upper"] = df["SMA_20"] + 2 * std20
     df["BB_Lower"] = df["SMA_20"] - 2 * std20
-    df["ATR_14"] = compute_atr(df, 14)
-    # İndikatör ısınma periyodundan kaynaklanan NaN satırlarını at
+    df["ATR_14"] = compute_atr(df, min(14, max(2, len(df))))
+    # İndikatör ısınma periyodundan kaynaklanan NaN satırlarını bfill/ffill ile kurtar veya son satırları koru
+    df = df.bfill().ffill()
     return df.dropna()
 
 

@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { PeriodType, StockDataPoint } from "@/types/stock";
 import { SlidersHorizontal, Info, HelpCircle } from "lucide-react";
+import { InfoTooltip } from "./InfoTooltip";
 
 interface StockChartProps {
   data: StockDataPoint[];
@@ -94,44 +95,68 @@ export const StockChart: React.FC<StockChartProps> = ({
             İndikatörler:
           </span>
 
-          <button
-            onClick={() => setShowSMA20(!showSMA20)}
-            title="SMA 20: 20 günlük basit hareketli ortalama (kısa vadeli trend)"
-            className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
-              showSMA20
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold"
-                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            <span className="w-2 h-0.5 bg-amber-500 rounded" />
-            SMA 20
-          </button>
+          <div className="inline-flex items-center gap-1">
+            <button
+              onClick={() => setShowSMA20(!showSMA20)}
+              title="SMA 20: 20 günlük basit hareketli ortalama"
+              className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
+                showSMA20
+                  ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold"
+                  : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <span className="w-2 h-0.5 bg-amber-500 rounded" />
+              SMA 20
+            </button>
+            <InfoTooltip
+              title="SMA 20 (20 Günlük Basit Hareketli Ortalama)"
+              description="Son 20 işlem gününün kapanış fiyatlarının aritmetik ortalamasıdır. Kısa vadeli trend desteği veya direnci olarak çalışır."
+              formula="SMA_20 = ∑(Kapanış_t) / 20"
+              interpretation="Fiyat SMA 20'nin üzerindeyse kısa vadeli yükseliş eğilimi güçlenir."
+            />
+          </div>
 
-          <button
-            onClick={() => setShowSMA50(!showSMA50)}
-            title="SMA 50: 50 günlük basit hareketli ortalama (orta vadeli ana trend)"
-            className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
-              showSMA50
-                ? "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 font-semibold"
-                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            <span className="w-2 h-0.5 bg-sky-500 rounded" />
-            SMA 50
-          </button>
+          <div className="inline-flex items-center gap-1">
+            <button
+              onClick={() => setShowSMA50(!showSMA50)}
+              title="SMA 50: 50 günlük basit hareketli ortalama"
+              className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
+                showSMA50
+                  ? "bg-sky-500/10 border-sky-500/30 text-sky-600 dark:text-sky-400 font-semibold"
+                  : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <span className="w-2 h-0.5 bg-sky-500 rounded" />
+              SMA 50
+            </button>
+            <InfoTooltip
+              title="SMA 50 (50 Günlük Basit Hareketli Ortalama)"
+              description="Son 50 işlem gününün ortalamasıdır. Orta vadeli ana piyasa yönünü belirler."
+              formula="SMA_50 = ∑(Kapanış_t) / 50"
+              interpretation="SMA 20'nin SMA 50'yi yukarı kesmesi 'Altın Kesişim' (Golden Cross), aşağı kesmesi 'Ölüm Kesişimi' (Death Cross) sinyalidir."
+            />
+          </div>
 
-          <button
-            onClick={() => setShowBollinger(!showBollinger)}
-            title="Bollinger: 20 günlük ortalamaya 2 standart sapma mesafedeki alt ve üst volatilite bantları"
-            className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
-              showBollinger
-                ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400 font-semibold"
-                : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            <span className="w-2 h-0.5 bg-purple-500 rounded" />
-            Bollinger
-          </button>
+          <div className="inline-flex items-center gap-1">
+            <button
+              onClick={() => setShowBollinger(!showBollinger)}
+              title="Bollinger Bantları: 20 günlük ortalamaya 2 standart sapma mesafedeki alt ve üst bantlar"
+              className={`px-2.5 py-1 rounded-lg border font-medium transition flex items-center gap-1.5 ${
+                showBollinger
+                  ? "bg-purple-500/10 border-purple-500/30 text-purple-600 dark:text-purple-400 font-semibold"
+                  : "border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <span className="w-2 h-0.5 bg-purple-500 rounded" />
+              Bollinger
+            </button>
+            <InfoTooltip
+              title="Bollinger Bantları (20, 2)"
+              description="20 günlük hareketli ortalamanın 2 standart sapma üstü ve altı alınarak hesaplanan volatilite kanallarıdır."
+              formula="Üst = SMA20 + 2σ | Alt = SMA20 - 2σ"
+              interpretation="Fiyat üst banda değdiğinde aşırı alım, alt banda değdiğinde aşırı satım kabul edilir. Bantların daralması sert kırılım habercisidir."
+            />
+          </div>
         </div>
       </div>
 
@@ -256,28 +281,44 @@ export const StockChart: React.FC<StockChartProps> = ({
       <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
-            <button
-              onClick={() => setSubChart("RSI")}
-              title="Göreceli Güç Endeksi: Aşırı alım (≥70) ve aşırı satım (≤30) bölgeleri"
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
-                subChart === "RSI"
-                  ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              }`}
-            >
-              RSI (14)
-            </button>
-            <button
-              onClick={() => setSubChart("MACD")}
-              title="MACD: 12 ve 26 günlük EMA farkı ve 9 günlük sinyal çizgisi kesişimleri"
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
-                subChart === "MACD"
-                  ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-              }`}
-            >
-              MACD
-            </button>
+            <div className="inline-flex items-center gap-1">
+              <button
+                onClick={() => setSubChart("RSI")}
+                title="Göreceli Güç Endeksi: Aşırı alım (≥70) ve aşırı satım (≤30) bölgeleri"
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
+                  subChart === "RSI"
+                    ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                RSI (14)
+              </button>
+              <InfoTooltip
+                title="RSI (14 Günlük Göreceli Güç Endeksi)"
+                description="Momentum osilatörüdür. 0-100 arasında salınır. 70 seviyesi aşırı alım, 30 seviyesi aşırı satım eşiğidir."
+                formula="RSI = 100 - [100 / (1 + RS)]"
+                interpretation="70 üzeri seviyelerde kar realizasyonu riski, 30 altı seviyelerde tepki alımı potansiyeli artar."
+              />
+            </div>
+            <div className="inline-flex items-center gap-1">
+              <button
+                onClick={() => setSubChart("MACD")}
+                title="MACD: 12 ve 26 günlük EMA farkı ve 9 günlük sinyal çizgisi kesişimleri"
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition ${
+                  subChart === "MACD"
+                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                MACD
+              </button>
+              <InfoTooltip
+                title="MACD (Moving Average Convergence Divergence)"
+                description="Kısa ve uzun vadeli üssel hareketli ortalamaların farkıdır. Histogram yeşil ise alıcılar, kırmızı ise satıcılar baskındır."
+                formula="MACD = EMA(12) - EMA(26) | Sinyal = EMA_9(MACD)"
+                interpretation="MACD çizgisinin sinyal çizgisini yukarı kesmesi AL, aşağı kesmesi SAT sinyalidir."
+              />
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

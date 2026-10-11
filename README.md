@@ -27,18 +27,20 @@ Proje şu anda Docker konteynerleri üzerinde izole bir şekilde çalışmaktad�
 👉 **[http://localhost:3000](http://localhost:3000)** (Frontend Paneli)  
 👉 **[http://localhost:8000/docs](http://localhost:8000/docs)** (FastAPI Swagger Dokümantasyonu)
 
-### 2. Arayüz Özellikleri:
-- **420+ BIST Hissesi Arama:** Arama kutusuna `THYAO`, `GARAN`, `ASELS`, `EREGL`, `TUPRS`, `KCHOL`, `BIMAS` vb. yazarak arama yapabilirsiniz. Türkçe karakter duyarsız arama şirketin unvanını veya hisse kodunu anında bulur.
-- **İnteraktif Grafik Paneli:** 1 Ay, 3 Ay, 6 Ay, 1 Yıl, 2 Yıl veya 5 Yıl seçenekleri; SMA 20, SMA 50 ve Bollinger bantlarını tek tıkla açıp kapatma.
-- **Alt Osilatörler:** Grafiğin altındaki sekmeden **RSI (14)** (aşırı alım 70 / aşırı satım 30 çizgileriyle) veya **MACD** (çizgiler ve renkli histogram barları) arasında geçiş.
-- **Yapay Zeka Analiz Kartı:**
-  - 1 gün sonrası için **hedef kapanış fiyatı** ve **yüzdesel değişim beklentisi**,
-  - Karar ağaçlarının oylamasına dayalı **%10-%90 Güven Aralığı (En Düşük - En Yüksek)**,
-  - **Yükseliş Olasılığı (Directional Probability %)** göstergesi,
-  - 5 adet kural tabanlı teknik indikatör sinyali (AL / SAT / NÖTR).
-- **Finansal Terimler Sözlüğü:** Sağ üstteki **"Terimler Sözlüğü"** butonuna basarak tüm indikatörlerin (RSI, MACD, Bollinger, SMA, ATR, MAE, ROC-AUC) formüllerini ve yorumlama kurallarını görüntüleyebilirsiniz.
-- **Model Metrikleri Penceresi:** Sağ üstteki **"Model Metrikleri"** butonundan holdout test seti doğruluk oranlarını ve karar ağaçlarında en etkili özellikleri inceleyebilirsiniz.
-- **Karanlık / Aydınlık Tema:** Sağ üstteki Ay/Güneş butonuna tıklayarak temayı değiştirebilirsiniz.
+### 2. Arayüz ve Fonksiyonel Özellikler:
+- **Piyasa Dashboard (Varsayılan Açılış Ekranı):**
+  - **BIST 100 Endeks Kartı:** Güncel puan, günlük değişim ve yön göstergesi.
+  - **Yapay Zeka Piyasa Hissi (Sentiment Barometer):** Önde gelen hisselerde karar ağaçlarının yükseliş (Boğa), düşüş (Ayı) ve nötr konsensüs dağılımı.
+  - **Öne Çıkan Yükselenler & Düşenler:** Günün en çok değer kazanan ve kaybeden BIST lokomotifleri.
+  - **BIST Hisseleri Canlı Tarama Tablosu:** 12 önde gelen BIST hissesi için fiyat, günlük değişim, RSI (14), hacim ve anlık AI Model Sinyali (AL/SAT/NÖTR). Tıklanarak hissenin derin analizine geçiş yapılabilir.
+- **İnline (i) Bilgi İkonları (Sayfa Değiştirmeden Anlık Açıklama):**
+  - Her indikatörün, sinyalin, metrik ve güven aralığının yanındaki `(i)` ikonuna fareyle gelindiğinde veya tıklandığında sayfa terk edilmeden matematiksel formül, açıklama ve finansal yorumlama ipuçları popover penceresinde açılır.
+- **İki Katmanlı Hibrit Makine Öğrenmesi (Per-Stock + Macro Ensemble):**
+  - Tüm hisselerde tek bir BIST30 modeli kullanmak yerine; incelenen hissenin kendi geçmiş verisiyle (1200+ gün) eğitilmiş bağımsız Random Forest modeline **%65 ağırlık**, makro piyasa rejimini yakalayan BIST modeline **%35 ağırlık** verilerek **Hibrit Model Konsensüsü** üretilir.
+- **420+ BIST Hissesi Arama & Detay Analiz:**
+  - `THYAO`, `GARAN`, `ASELS`, `EREGL`, `TUPRS`, `KCHOL`, `BIMAS` vb. Türkçe karakter duyarsız arama.
+- **İnteraktif Grafik & Alt Osilatörler:** 1 Ay'dan 5 Yıl'a kadar periyotlar, SMA 20, SMA 50, Bollinger bantları, RSI (14) ve MACD histogram paneli.
+- **Model Metrikleri & Terimler Sözlüğü Modalleri:** Detaylı holdout test doğrulukları ve kapsamlı finansal terimler ansiklopedisi.
 
 ---
 

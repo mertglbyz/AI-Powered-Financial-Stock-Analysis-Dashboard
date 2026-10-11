@@ -100,3 +100,13 @@ def test_predict_ok_after_training(client, monkeypatch):
     info = client.get("/api/model/info")
     assert info.status_code == 200
     assert "directional_accuracy" in info.json()["metrics"]
+
+
+def test_market_overview(client):
+    r = client.get("/api/market/overview")
+    assert r.status_code == 200
+    body = r.json()
+    assert "bist100" in body
+    assert "sentiment_barometer" in body
+    assert len(body["popular_stocks"]) > 0
+    assert "market_sentiment" in body["sentiment_barometer"]

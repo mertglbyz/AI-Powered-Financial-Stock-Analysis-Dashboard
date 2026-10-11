@@ -406,48 +406,165 @@ def technical_signals(df: pd.DataFrame) -> list[dict[str, Any]]:
     return signals
 
 
+STOCK_MODELS_DIR = Path(os.getenv("STOCK_MODELS_DIR", MODEL_PATH.parent / "stock_models"))
+STOCK_MODELS_DIR.mkdir(parents=True, exist_ok=True)
+_dedicated_cache: dict[str, dict[str, Any]] = {}
+_dedicated_lock = threading.Lock()
+
+
+def get_or_train_dedicated_model(ticker: str, force: bool = False) -> dict[str, Any]:
+    """İlgili hissenin kendi 5 yıllık verisiyle hisseye özel RandomForest modeli eğitir / yükler."""
+    ticker = normalize_ticker(ticker)
+    clean_sym = ticker.replace(".IS", "")
+    with _dedicated_lock:
+        if not force and clean_sym in _dedicated_cache:
+            return _dedicated_cache[clean_sym]
+
+    model_file = STOCK_MODELS_DIR / f"{clean_sym}.pkl"
+    if not force and model_file.exists():
+        try:
+            bundle = joblib.load(model_file)
+            with _dedicated_lock:
+                _dedicated_cache[clean_sym] = bundle
+            return bundle
+        except Exception:
+            pass
+
+    # Hisseye özel veriyi al ve model eğit
+    df = get_processed_data(ticker)
+    feats = build_features(df, _safe_market())
+    tr, te = chronological_split(feats)
+    if len(tr) < 80:
+        raise DataFetchError(f"'{ticker}' için hisseye özel model eğitmeye yetecek geçmiş veri yok.")
+
+    reg = RandomForestRegressor(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
+    clf = RandomForestClassifier(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
+
+    reg.fit(tr[FEATURE_COLUMNS], tr[TARGET_COLUMN])
+    clf.fit(tr[FEATURE_COLUMNS], tr[TARGET_UP])
+    metrics = evaluate(reg, te, clf).to_dict()
+
+    # En güncel tahmin için tüm etiketli veriyle son fit
+    labeled = feats.dropna(subset=[TARGET_COLUMN])
+    reg_full = RandomForestRegressor(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
+    clf_full = RandomForestClassifier(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
+    reg_full.fit(labeled[FEATURE_COLUMNS], labeled[TARGET_COLUMN])
+    clf_full.fit(labeled[FEATURE_COLUMNS], labeled[TARGET_UP])
+
+    bundle = {
+        "ticker": ticker,
+        "regressor": reg_full,
+        "classifier": clf_full,
+        "metrics": metrics,
+        "train_size": len(tr),
+        "test_size": len(te),
+        "trained_at": datetime.now(timezone.utc).isoformat(),
+    }
+    joblib.dump(bundle, model_file, compress=2)
+    with _dedicated_lock:
+        _dedicated_cache[clean_sym] = bundle
+    return bundle
+
+
 def predict(ticker: str, bundle: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Hissenin en güncel verisiyle ertesi günün kapanış fiyatını ve yönünü tahmin eder."""
-    bundle = bundle or load_model()
-    reg: RandomForestRegressor = bundle["regressor"]
-    clf: RandomForestClassifier = bundle["classifier"]
+    """Hissenin en güncel verisiyle hem hisseye özel hem piyasa geneli modelinden tahmin üretir."""
+    global_bundle = bundle or load_model()
     ticker = normalize_ticker(ticker)
 
     df = get_processed_data(ticker)
-    feats = build_features(df, _safe_market())
+    market = _safe_market()
+    feats = build_features(df, market)
     if feats.empty:
         raise DataFetchError(f"'{ticker}' için tahmin üretecek yeterli veri yok.")
 
     latest = feats.iloc[[-1]]
-    x = latest[bundle["features"]]
+    x = latest[FEATURE_COLUMNS]
     x_np = x.to_numpy()
+    last_close = float(latest["Close"].iloc[0])
 
-    pred_return = float(reg.predict(x)[0])
-    tree_preds = np.array([est.predict(x_np)[0] for est in reg.estimators_])
+    # 1) Hisseye Özel Model (Dedicated Model)
+    try:
+        ded_bundle = get_or_train_dedicated_model(ticker)
+        ded_reg: RandomForestRegressor = ded_bundle["regressor"]
+        ded_clf: RandomForestClassifier = ded_bundle["classifier"]
+
+        ded_return = float(ded_reg.predict(x)[0])
+        ded_prob_up = float(ded_clf.predict_proba(x)[0][list(ded_clf.classes_).index(1.0)])
+        ded_accuracy = ded_bundle["metrics"]["directional_accuracy"]
+        ded_price = round(last_close * (1 + ded_return), 2)
+        ded_train_size = ded_bundle["train_size"]
+    except Exception as exc:
+        logger.warning("%s hisseye özel model hatası, piyasa modeli kullanılacak: %s", ticker, exc)
+        ded_return = None
+        ded_prob_up = None
+        ded_accuracy = None
+        ded_price = None
+        ded_train_size = None
+
+    # 2) Piyasa Geneli Model (Global BIST Benchmark)
+    glob_reg: RandomForestRegressor = global_bundle["regressor"]
+    glob_clf: RandomForestClassifier = global_bundle["classifier"]
+
+    glob_return = float(glob_reg.predict(x)[0])
+    glob_prob_up = float(glob_clf.predict_proba(x)[0][list(glob_clf.classes_).index(1.0)])
+    glob_price = round(last_close * (1 + glob_return), 2)
+
+    # Karar ağaçlarının aralığı (Confidence interval %10-%90)
+    tree_preds = np.array([est.predict(x_np)[0] for est in glob_reg.estimators_])
     low_ret, high_ret = np.percentile(tree_preds, [10, 90])
 
-    prob_up = float(clf.predict_proba(x)[0][list(clf.classes_).index(1.0)])
-    if prob_up >= BULLISH_THRESHOLD:
+    # 3) Hibrit Konsensüs Hesaplama (65% hisseye özel + 35% piyasa geneli)
+    if ded_return is not None and ded_prob_up is not None:
+        final_return = 0.65 * ded_return + 0.35 * glob_return
+        final_prob = 0.65 * ded_prob_up + 0.35 * glob_prob_up
+        predicted_price = round(last_close * (1 + final_return), 2)
+    else:
+        final_return = glob_return
+        final_prob = glob_prob_up
+        predicted_price = glob_price
+
+    if final_prob >= 0.58:
         trend = "BULLISH"
-    elif prob_up <= BEARISH_THRESHOLD:
+        consensus_text = "GÜÇLÜ YÜKSELİŞ"
+    elif final_prob >= BULLISH_THRESHOLD:
+        trend = "BULLISH"
+        consensus_text = "YÜKSELİŞ"
+    elif final_prob <= 0.42:
         trend = "BEARISH"
+        consensus_text = "GÜÇLÜ DÜŞÜŞ"
+    elif final_prob <= BEARISH_THRESHOLD:
+        trend = "BEARISH"
+        consensus_text = "DÜŞÜŞ"
     else:
         trend = "NEUTRAL"
+        consensus_text = "NÖTR / YATAY"
 
-    last_close = float(latest["Close"].iloc[0])
     return {
         "ticker": ticker,
         "last_close": round(last_close, 2),
         "last_date": latest.index[0].strftime("%Y-%m-%d"),
-        "predicted_price": round(last_close * (1 + pred_return), 2),
-        "predicted_change_pct": round(pred_return * 100, 3),
+        "predicted_price": predicted_price,
+        "predicted_change_pct": round(final_return * 100, 3),
         "price_range_low": round(last_close * (1 + float(low_ret)), 2),
         "price_range_high": round(last_close * (1 + float(high_ret)), 2),
-        "probability_up": round(prob_up, 4),
+        "probability_up": round(final_prob, 4),
         "trend": trend,
-        "confidence": round(abs(prob_up - 0.5) * 2, 4),  # 0 = kararsız, 1 = çok emin
+        "consensus_label": consensus_text,
+        "confidence": round(abs(final_prob - 0.5) * 2, 4),
+        "dedicated_model": {
+            "enabled": ded_return is not None,
+            "predicted_price": ded_price,
+            "probability_up": round(ded_prob_up, 4) if ded_prob_up is not None else None,
+            "directional_accuracy": round(ded_accuracy, 4) if ded_accuracy is not None else None,
+            "train_days": ded_train_size,
+        },
+        "global_model": {
+            "predicted_price": glob_price,
+            "probability_up": round(glob_prob_up, 4),
+            "benchmark_accuracy": round(global_bundle["metrics"]["directional_accuracy"], 4),
+        },
         "signals": technical_signals(df),
-        "model_trained_at": bundle.get("trained_at"),
+        "model_trained_at": global_bundle.get("trained_at"),
     }
 
 

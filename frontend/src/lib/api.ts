@@ -1,6 +1,7 @@
 import {
   HealthResponse,
   HistoricalResponse,
+  MarketOverviewResponse,
   ModelInfoResponse,
   PeriodType,
   PredictionResponse,
@@ -36,6 +37,10 @@ async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T>
 
 export async function getHealth(): Promise<HealthResponse> {
   return fetchJson<HealthResponse>("/api/health");
+}
+
+export async function getMarketOverview(): Promise<MarketOverviewResponse> {
+  return fetchJson<MarketOverviewResponse>("/api/market/overview");
 }
 
 export async function searchTickers(query: string = "", limit: number = 20): Promise<TickerItem[]> {

@@ -53,6 +53,20 @@ export interface Signal {
   description: string;
 }
 
+export interface DedicatedModelDetail {
+  enabled: boolean;
+  predicted_price: number | null;
+  probability_up: number | null;
+  directional_accuracy: number | null;
+  train_days: number | null;
+}
+
+export interface GlobalModelDetail {
+  predicted_price: number;
+  probability_up: number;
+  benchmark_accuracy: number;
+}
+
 export interface PredictionResponse {
   ticker: string;
   name: string | null;
@@ -64,7 +78,10 @@ export interface PredictionResponse {
   price_range_high: number;
   probability_up: number;
   trend: TrendType;
+  consensus_label?: string | null;
   confidence: number;
+  dedicated_model?: DedicatedModelDetail | null;
+  global_model?: GlobalModelDetail | null;
   signals: Signal[];
   model_trained_at: string | null;
 }
@@ -98,6 +115,39 @@ export interface ModelInfoResponse {
     all_days_avg_return: number;
   };
   feature_importances: FeatureImportance[];
+}
+
+export interface MarketStockSnapshot {
+  ticker: string;
+  code: string;
+  name: string;
+  last_close: number;
+  change: number;
+  change_pct: number;
+  volume: number;
+  trend: TrendType;
+  rsi: number;
+}
+
+export interface MarketOverviewResponse {
+  bist100: {
+    last_close: number;
+    change: number;
+    change_pct: number;
+    trend: TrendType;
+    last_date: string;
+  };
+  sentiment_barometer: {
+    bullish_pct: number;
+    bearish_pct: number;
+    neutral_pct: number;
+    total_analyzed: number;
+    market_sentiment: string;
+  };
+  popular_stocks: MarketStockSnapshot[];
+  top_gainers: MarketStockSnapshot[];
+  top_losers: MarketStockSnapshot[];
+  updated_at: string;
 }
 
 export interface HealthResponse {
