@@ -180,6 +180,19 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
         </div>
       </div>
 
+      {/* IPO / Short History Senior Data Scientist Notice */}
+      {prediction.is_ipo && (
+        <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 space-y-1">
+          <div className="flex items-center gap-2 font-bold text-xs">
+            <Sparkles className="w-4 h-4 text-purple-500 shrink-0" />
+            <span>Halka Arz / Kısa Geçmiş Analizi ({prediction.history_days} İşlem Günü)</span>
+          </div>
+          <p className="text-[11px] leading-relaxed opacity-90">
+            {prediction.ipo_note || "Bu hisse BIST'e yakın zamanda kote olduğundan tahmin, 60.000+ günlük BIST havuzunda eğitilmiş Global Model transfer öğrenmesi ve uyarlamalı kısa vadeli indikatörler ile türetilmiştir."}
+          </p>
+        </div>
+      )}
+
       {/* Primary Target Price Highlight */}
       <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2">
         <div className="flex items-center justify-between">

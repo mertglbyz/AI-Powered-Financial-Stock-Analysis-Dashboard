@@ -26,6 +26,7 @@ interface StockChartProps {
 }
 
 const PERIODS: { key: PeriodType; label: string }[] = [
+  { key: "1w", label: "1 Hafta" },
   { key: "1mo", label: "1 Ay" },
   { key: "3mo", label: "3 Ay" },
   { key: "6mo", label: "6 Ay" },

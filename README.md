@@ -37,8 +37,8 @@ Proje şu anda Docker konteynerleri üzerinde izole bir şekilde çalışmaktad�
   - Her indikatörün, sinyalin, metrik ve güven aralığının yanındaki `(i)` ikonuna fareyle gelindiğinde veya tıklandığında sayfa terk edilmeden matematiksel formül, açıklama ve finansal yorumlama ipuçları popover penceresinde açılır.
 - **İki Katmanlı Hibrit Makine Öğrenmesi (Per-Stock + Macro Ensemble):**
   - Tüm hisselerde tek bir BIST30 modeli kullanmak yerine; incelenen hissenin kendi geçmiş verisiyle (1200+ gün) eğitilmiş bağımsız Random Forest modeline **%65 ağırlık**, makro piyasa rejimini yakalayan BIST modeline **%35 ağırlık** verilerek **Hibrit Model Konsensüsü** üretilir.
-- **420+ BIST Hissesi Arama & Detay Analiz:**
-  - `THYAO`, `GARAN`, `ASELS`, `EREGL`, `TUPRS`, `KCHOL`, `BIMAS` vb. Türkçe karakter duyarsız arama.
+- **550+ BIST Hissesi Arama & Detay Analiz:**
+  - `THYAO`, `GARAN`, `ASELS`, `EREGL`, `TUPRS`, `KCHOL`, `BIMAS` vb. Türkçe karakter duyarsız arama ve sektör etiketleri.
 - **İnteraktif Grafik & Alt Osilatörler:** 1 Ay'dan 5 Yıl'a kadar periyotlar, SMA 20, SMA 50, Bollinger bantları, RSI (14) ve MACD histogram paneli.
 - **Model Metrikleri & Terimler Sözlüğü Modalleri:** Detaylı holdout test doğrulukları ve kapsamlı finansal terimler ansiklopedisi.
 
@@ -94,7 +94,7 @@ docker compose down
                  │
                  ▼
 [ FastAPI Backend (backend/main.py - Port: 8000) ]
-  ├── GET /api/tickers (420+ BIST hissesi otomatik tamamlama)
+  ├── GET /api/tickers (550+ BIST hissesi akıllı tamamlama & sektör etiketleri)
   ├── GET /api/historical/{ticker} (OHLCV + İndikatör Serileri)
   ├── GET /api/predict/{ticker} (Yapay Zeka Tahmin Yanıtı)
   └── GET /api/model/info (Holdout Metrikleri & Özellik Önemleri)
@@ -113,12 +113,12 @@ docker compose down
 
 ### Soru: BIST Hisselerinin Tamamı Ekli mi ve Nasıl Eğitildi?
 1. **Tüm Hisseler Sistemde Tanımlıdır:**  
-   `backend/bist_tickers.py` dosyasında Borsa İstanbul'da işlem gören **420'den fazla şirket** eksiksiz olarak kayıtlıdır. Arama motorunda dilediğiniz hisseyi yazıp anında geçmiş verisini ve yapay zeka analizini çağırabilirsiniz.
+   `backend/bist_tickers.py` dosyasında Borsa İstanbul'da işlem gören **550'den fazla şirket ve güncel halka arzlar** eksiksiz olarak kayıtlıdır. Arama motorunda dilediğiniz hisseyi yazıp anında geçmiş verisini ve yapay zeka analizini çağırabilirsiniz.
 
 2. **Neden BIST30 ile Eğitilip Tüm Hisselerde Kullanılıyor?**
    - **Ölçekten Bağımsız Özellikler:** Model eğitilirken TL cinsinden hisse fiyatları verilmez. Çünkü 10 TL'lik bir hisse ile 400 TL'lik bir hissenin mutlak fiyatları kıyaslanamaz. Bunun yerine model, **getiri oranları (`ret_1`, `ret_20`), fiyata oranlanmış hareketli ortalamalar (`Close / SMA - 1`), normalize MACD (`MACD / Close`), RSI ve endekse göre göreceli güç (`rel_strength_20`)** gibi evrensel oranları öğrenir.
    - **Gürültüsüz (Robust) Veri:** BIST30 hisseleri (THYAO, GARAN, ASELS, BIMAS, EREGL vb.) piyasanın en likit, işlem hacmi en yüksek ve derinlikli hisseleridir. Spekülatif tavan-taban manipülasyonlarından en uzaktır. Model bu havuzda **30.000'den fazla işlem gününü** inceleyerek sağlıklı piyasa rejimlerini öğrenir.
-   - **Genellenebilirlik:** Eğitilen bu model, Borsa İstanbul'daki **tüm 420+ hisseye** girdiğinde o hissenin anlık teknik oranlarını değerlendirir ve hisseye özel hedef fiyat ile yükseliş olasılığı üretir.
+   - **Genellenebilirlik:** Eğitilen bu model, Borsa İstanbul'daki **tüm 550+ hisseye** girdiğinde o hissenin anlık teknik oranlarını değerlendirir ve hisseye özel hedef fiyat ile yükseliş olasılığı üretir.
 
 ---
 

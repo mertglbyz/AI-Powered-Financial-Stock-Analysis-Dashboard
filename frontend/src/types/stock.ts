@@ -1,10 +1,11 @@
 export type TrendType = "BULLISH" | "BEARISH" | "NEUTRAL";
-export type PeriodType = "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y";
+export type PeriodType = "1w" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y";
 
 export interface TickerItem {
   symbol: string;
   code: string;
   name: string;
+  sector?: string;
 }
 
 export interface StockDataPoint {
@@ -80,6 +81,9 @@ export interface PredictionResponse {
   trend: TrendType;
   consensus_label?: string | null;
   confidence: number;
+  is_ipo?: boolean;
+  history_days?: number;
+  ipo_note?: string | null;
   dedicated_model?: DedicatedModelDetail | null;
   global_model?: GlobalModelDetail | null;
   signals: Signal[];

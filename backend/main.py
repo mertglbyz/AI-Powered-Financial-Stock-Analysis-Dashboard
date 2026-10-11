@@ -40,8 +40,8 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3
 AUTO_TRAIN = os.getenv("AUTO_TRAIN", "1") == "1"
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")  # ayarlanırsa /api/model/train için gerekli
 
-Period = Literal["1mo", "3mo", "6mo", "1y", "2y", "5y"]
-PERIOD_DAYS: dict[str, int] = {"1mo": 31, "3mo": 92, "6mo": 183, "1y": 365, "2y": 730, "5y": 1830}
+Period = Literal["1w", "1mo", "3mo", "6mo", "1y", "2y", "5y"]
+PERIOD_DAYS: dict[str, int] = {"1w": 7, "1mo": 31, "3mo": 92, "6mo": 183, "1y": 365, "2y": 730, "5y": 1830}
 TrendType = Literal["BULLISH", "BEARISH", "NEUTRAL"]
 
 
@@ -57,6 +57,7 @@ class TickerItem(BaseModel):
     symbol: str = Field(examples=["THYAO.IS"])
     code: str = Field(examples=["THYAO"])
     name: str = Field(examples=["Türk Hava Yolları"])
+    sector: str | None = Field(default=None, examples=["Havacılık & Ulaştırma"])
 
 
 class StockDataPoint(BaseModel):
@@ -132,6 +133,9 @@ class PredictionResponse(BaseModel):
     trend: TrendType
     consensus_label: str | None = None
     confidence: float
+    is_ipo: bool = False
+    history_days: int | None = None
+    ipo_note: str | None = None
     dedicated_model: DedicatedModelDetail | None = None
     global_model: GlobalModelDetail | None = None
     signals: list[Signal]
@@ -439,96 +443,73 @@ def market_performance(
     }
     label = timeframe_labels.get(timeframe, "Haftalık")
 
-    # BIST evreninde performans taranacak hisseler
+    # BIST evreninde performans taranacak kapsamlı hisse havuzu (BIST30 + BIST100 + Sektör Liderleri + Güncel Halka Arzlar)
     perf_universe = [
+        # BIST 30
         "THYAO.IS", "GARAN.IS", "ASELS.IS", "BIMAS.IS", "KCHOL.IS", "EREGL.IS",
         "TUPRS.IS", "PGSUS.IS", "SISE.IS", "AKBNK.IS", "ISCTR.IS", "SAHOL.IS",
         "YKBNK.IS", "FROTO.IS", "TOASO.IS", "ENKAI.IS", "ALARK.IS", "KOZAL.IS",
         "ASTOR.IS", "KONTR.IS", "HEKTS.IS", "SASA.IS", "PETKM.IS", "TCELL.IS",
         "MGROS.IS", "DOAS.IS", "EKGYO.IS", "GUBRF.IS", "KRDMD.IS", "OYAKC.IS",
+        # Enerji & Sanayi & Teknoloji
+        "ENJSA.IS", "CWENE.IS", "EUPWR.IS", "AKFYE.IS", "AKSEN.IS", "ALFAS.IS",
+        "MIATK.IS", "REEDR.IS", "ARDYZ.IS", "VBTYZ.IS", "PAPIL.IS", "LOGO.IS",
+        "TTKOM.IS", "TTRAK.IS", "OTKAR.IS", "ASUZU.IS", "BFREN.IS", "BRISA.IS",
+        "CIMSA.IS", "AKCNS.IS", "BUCIM.IS", "NUHCM.IS", "BOBET.IS", "BTCIM.IS",
+        "SOKM.IS", "ULKER.IS", "CCOLA.IS", "AEFES.IS", "BIZIM.IS", "TATGD.IS",
+        "VAKBN.IS", "HALKB.IS", "ALBRK.IS", "TSKB.IS", "QNBFB.IS", "KLNMA.IS",
+        "TRGYO.IS", "ISGYO.IS", "KLGYO.IS", "SNGYO.IS", "OZKGY.IS", "VKGYO.IS",
+        "ISDMR.IS", "BRSAN.IS", "CEMTS.IS", "ERBOS.IS", "TUCLK.IS", "BMSCH.IS",
+        "KOZAA.IS", "IPEKE.IS", "ALMAD.IS", "CVKMD.IS", "ALKIM.IS", "BAGFS.IS",
+        "AGHOL.IS", "DOHOL.IS", "BERA.IS", "GSDHO.IS", "TKFEN.IS", "TAVHL.IS",
+        # Güncel Halka Arzlar
+        "ALTNY.IS", "PATEK.IS", "SURGY.IS", "EFORC.IS", "HOROZ.IS", "ONRYT.IS",
+        "OZATD.IS", "KOTON.IS", "LILAK.IS", "ENTRA.IS", "MOGAN.IS", "TABGD.IS",
+        "BINHO.IS", "OBAMS.IS", "LIMAK.IS", "SEGMN.IS", "CEMZY.IS", "DCTTR.IS",
     ]
 
     lookback_map = {"1w": 5, "1mo": 21, "1y": 250}
     lookback = lookback_map.get(timeframe, 5)
     hist_period = "2y" if timeframe == "1y" else "6mo"
 
-    items: list[PerformanceStockItem] = []
-
-    for sym in perf_universe:
+    def _calc_stock(sym: str) -> PerformanceStockItem | None:
         try:
             df = get_processed_data(sym, period=hist_period)
             if len(df) < 2:
-                continue
+                return None
             last_row = df.iloc[-1]
             last_price = float(last_row["Close"])
+            # Eğer hissenin geçmişi istenen periyottan kısaysa (yeni halka arz):
+            # İlk kote olduğu günden itibaren getiriyi hesapla
             start_idx = max(0, len(df) - 1 - lookback)
             start_price = float(df.iloc[start_idx]["Close"])
             if start_price <= 0:
-                continue
+                return None
             chg = round(last_price - start_price, 2)
             chg_pct = round(((last_price / start_price) - 1) * 100, 2)
             rsi = float(last_row["RSI_14"]) if "RSI_14" in last_row else 50.0
             trend: TrendType = "BULLISH" if chg_pct > 0 else ("BEARISH" if chg_pct < 0 else "NEUTRAL")
             code = sym.replace(".IS", "")
 
-            items.append(
-                PerformanceStockItem(
-                    ticker=sym,
-                    code=code,
-                    name=company_name(sym) or code,
-                    last_close=round(last_price, 2),
-                    start_close=round(start_price, 2),
-                    change=chg,
-                    change_pct=chg_pct,
-                    volume=float(last_row["Volume"]),
-                    trend=trend,
-                    rsi=round(rsi, 1),
-                )
+            return PerformanceStockItem(
+                ticker=sym,
+                code=code,
+                name=company_name(sym) or code,
+                last_close=round(last_price, 2),
+                start_close=round(start_price, 2),
+                change=chg,
+                change_pct=chg_pct,
+                volume=float(last_row["Volume"]),
+                trend=trend,
+                rsi=round(rsi, 1),
             )
-        except Exception as exc:
-            logger.warning("Performans taraması atlandı %s: %s", sym, exc)
+        except Exception:
+            return None
 
-    # Ağ kısıtı durumunda yedek gerçekçi BIST getiri verileriyle destekle
-    if len(items) < 8:
-        # Gerçekçi BIST getiri çarpanları (haftalık / aylık / yıllık simülasyonu)
-        multipliers = {"1w": 1.0, "1mo": 2.4, "1y": 8.5}
-        mult = multipliers.get(timeframe, 1.0)
-        fallback_returns = [
-            ("EREGL.IS", "EREGL", "Ereğli Demir Çelik", 37.32, 2.4 * mult, 62340000.0, "BULLISH", 52.1),
-            ("THYAO.IS", "THYAO", "Türk Hava Yolları", 287.50, 1.8 * mult, 22150000.0, "BULLISH", 48.3),
-            ("ASELS.IS", "ASELS", "Aselsan", 351.25, 1.4 * mult, 38380000.0, "BULLISH", 46.5),
-            ("GARAN.IS", "GARAN", "Garanti BBVA", 129.30, 1.1 * mult, 16600000.0, "BULLISH", 51.2),
-            ("BIMAS.IS", "BIMAS", "BİM Birleşik Mağazalar", 402.75, 0.9 * mult, 6930000.0, "BULLISH", 47.9),
-            ("AKBNK.IS", "AKBNK", "Akbank", 58.90, 0.6 * mult, 19200000.0, "BULLISH", 50.1),
-            ("TCELL.IS", "TCELL", "Turkcell", 92.40, 0.4 * mult, 8450000.0, "BULLISH", 49.3),
-            ("FROTO.IS", "FROTO", "Ford Otosan", 1045.0, 0.3 * mult, 3100000.0, "BULLISH", 48.0),
-            ("SISE.IS", "SISE", "Şişecam", 42.80, -0.4 * mult, 11300000.0, "BEARISH", 44.5),
-            ("KRDMD.IS", "KRDMD", "Kardemir (D)", 26.10, -0.7 * mult, 14500000.0, "BEARISH", 43.2),
-            ("ISCTR.IS", "ISCTR", "Türkiye İş Bankası (C)", 12.67, -0.9 * mult, 41200000.0, "BEARISH", 45.1),
-            ("TUPRS.IS", "TUPRS", "Tüpraş", 386.25, -1.5 * mult, 14920000.0, "BEARISH", 42.8),
-            ("KCHOL.IS", "KCHOL", "Koç Holding", 208.00, -2.1 * mult, 24650000.0, "BEARISH", 41.0),
-            ("SAHOL.IS", "SAHOL", "Sabancı Holding", 83.50, -3.2 * mult, 36200000.0, "BEARISH", 37.9),
-            ("PGSUS.IS", "PGSUS", "Pegasus", 236.70, -2.6 * mult, 7800000.0, "BEARISH", 39.4),
-        ]
-        existing = {it.ticker for it in items}
-        for s_sym, s_cd, s_nm, s_price, s_pct, s_vol, s_tr, s_rsi in fallback_returns:
-            if s_sym not in existing:
-                s_pct_r = round(s_pct, 2)
-                st_price = round(s_price / (1 + s_pct_r / 100), 2)
-                items.append(
-                    PerformanceStockItem(
-                        ticker=s_sym,
-                        code=s_cd,
-                        name=s_nm,
-                        last_close=s_price,
-                        start_close=st_price,
-                        change=round(s_price - st_price, 2),
-                        change_pct=s_pct_r,
-                        volume=s_vol,
-                        trend=s_tr,  # type: ignore
-                        rsi=s_rsi,
-                    )
-                )
+    # Çoklu iş parçacığıyla eşzamanlı hızlı tarama (Parallel fetch)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
+        results = executor.map(_calc_stock, perf_universe)
+        items = [r for r in results if r is not None]
 
     # Artıda olan TÜM hisseler (en çok yükselenden azalarak)
     gainers_list = sorted([i for i in items if i.change_pct > 0], key=lambda x: x.change_pct, reverse=True)

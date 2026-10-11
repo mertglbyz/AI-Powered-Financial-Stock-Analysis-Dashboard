@@ -124,7 +124,7 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
             }}
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
-            placeholder="420+ BIST hissesi içinde ara (örn: THYAO, Garanti, Aselsan, EREGL)..."
+            placeholder="Tüm BIST hisselerinde ara (örn: THYAO, Garanti, Banka, Havacılık, Enerji, Demir Çelik)..."
             className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 text-slate-900 dark:text-white placeholder-slate-400 shadow-sm transition"
           />
           {query && (
@@ -159,16 +159,23 @@ export const TickerSearch: React.FC<TickerSearchProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-bold text-slate-900 dark:text-white">
+                    <span className="font-bold text-slate-900 dark:text-white shrink-0">
                       {item.code}
                     </span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
                       {item.name}
                     </span>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider shrink-0 ml-2">
-                    BIST
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {item.sector && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        {item.sector}
+                      </span>
+                    )}
+                    <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+                      BIST
+                    </span>
+                  </div>
                 </button>
               ))
             ) : (

@@ -81,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Stock Coverage Badge */}
           <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
             <Layers className="w-3.5 h-3.5 text-blue-500" />
-            <span>420+ BIST Hissesi</span>
+            <span>Borsa İstanbul (550+ Hisse)</span>
           </div>
 
           {/* Glossary Button */}

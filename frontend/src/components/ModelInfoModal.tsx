@@ -182,10 +182,10 @@ export const ModelInfoModal: React.FC<ModelInfoModalProps> = ({
             <span>Tüm BIST Hisseleri Kapsamı & Model Eğitim Mantığı</span>
           </div>
           <p className="text-[11px] leading-relaxed">
-            <strong>420+ BIST Hissesi Tamamen Aktiftir:</strong> Sistemde 420&apos;den fazla Borsa İstanbul hissesi tanımlıdır ve arama çubuğundan dilediğiniz hisseyi seçebilirsiniz.
+            <strong>Tüm BIST Hisseleri (550+) Tamamen Aktiftir:</strong> Sistemde 550&apos;den fazla Borsa İstanbul hissesi tanımlıdır ve arama çubuğundan dilediğiniz hisseyi seçebilirsiniz.
           </p>
           <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-            <strong>Neden BIST30 ile Eğitildi?</strong> Model TL cinsinden ham fiyatı değil; <strong>yüzdesel oranları, göreceli gücü ve volatiliteyi</strong> öğrenir. BIST30 hisseleri spekülatif tavan-taban manipülasyonlarından en uzak, en derinlikli veri kaynağıdır. Model bu likit havuzda öğrendiği genel piyasa dinamiğini Borsa İstanbul&apos;daki <strong>tüm 420+ hisseye</strong> uygulayarak her biri için ayrı tahmin üretir.
+            <strong>Neden BIST30 ile Eğitildi?</strong> Model TL cinsinden ham fiyatı değil; <strong>yüzdesel oranları, göreceli gücü ve volatiliteyi</strong> öğrenir. BIST30 hisseleri spekülatif tavan-taban manipülasyonlarından en uzak, en derinlikli veri kaynağıdır. Model bu likit havuzda öğrendiği genel piyasa dinamiğini Borsa İstanbul&apos;daki <strong>tüm 550+ hisseye</strong> uygulayarak her biri için ayrı tahmin üretir.
           </p>
         </div>
 

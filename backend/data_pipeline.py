@@ -49,6 +49,7 @@ def normalize_ticker(ticker: str) -> str:
 def fetch_stock_data(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
     """Verilen sembol için (varsayılan: son 5 yıl, günlük) OHLCV verisini çeker."""
     ticker = normalize_ticker(ticker)
+    yf_period = "5d" if period == "1w" else period
     key = (ticker, f"{period}:{interval}")
     with _cache_lock:
         hit = _cache.get(key)
@@ -58,7 +59,7 @@ def fetch_stock_data(ticker: str, period: str = "5y", interval: str = "1d") -> p
     try:
         df = yf.download(
             ticker,
-            period=period,
+            period=yf_period,
             interval=interval,
             auto_adjust=False,
             progress=False,

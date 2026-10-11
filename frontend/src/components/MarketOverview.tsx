@@ -76,7 +76,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                 Canlı Borsa İstanbul Paneli
               </span>
               <span className="text-xs text-slate-400">
-                500+ BIST Hissesi • BIST 100 Endeks Özeti
+                Tüm BIST Hisseleri (550+) • BIST 100 Endeks Özeti
               </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">

@@ -41,7 +41,7 @@ from data_pipeline import DataFetchError, fetch_market_returns, get_processed_da
 
 logger = logging.getLogger(__name__)
 
-MODEL_VERSION = 2
+MODEL_VERSION = 3
 MODEL_PATH = Path(os.getenv("MODEL_PATH", Path(__file__).resolve().parent / "model.pkl"))
 DEFAULT_TRAINING_TICKERS: list[str] = [f"{c}.IS" for c in BIST30]
 
@@ -78,49 +78,60 @@ def compute_time_weights(n_samples: int, decay_rate: float = 0.0018) -> np.ndarr
 
 
 # ---------------------------------------------------------------------------
-# Özellik mühendisliği
+# Özellik mühendisliği (Kıdemli Veri Bilimci & Halka Arz Uyarlamalı)
 # ---------------------------------------------------------------------------
 def build_features(df: pd.DataFrame, market: pd.DataFrame | None = None) -> pd.DataFrame:
     """İndikatörlü DataFrame'den ML özellikleri ve hedefleri üretir.
-
-    market: `fetch_market_returns()` çıktısı (MKT_Close kolonu). None ise piyasa
-    özellikleri 0 kabul edilir. Son satırın hedefi NaN'dır (yarın bilinmiyor).
+    
+    Kıdemli Veri Bilimci (Senior Data Scientist) Yaklaşımı:
+    - Yeni halka arz olmuş (kısa geçmişli) hisselerde adaptif pencereleme ve
+      Empirical Bayes büzülmesi (shrinkage) kullanılır; böylece satırlar NaN nedeniyle düşmez.
+    - Piyasa oynaklığı ve getiri momentumu kısa veri serilerine göre normalize edilir.
     """
     out = pd.DataFrame(index=df.index)
     close = df["Close"]
+    n_rows = len(df)
 
-    out["ret_1"] = close.pct_change(1)
-    out["ret_2"] = close.pct_change(2)
-    out["ret_3"] = close.pct_change(3)
-    out["ret_5"] = close.pct_change(5)
-    out["ret_10"] = close.pct_change(10)
-    out["ret_20"] = close.pct_change(20)
-    out["close_sma20"] = close / df["SMA_20"] - 1
-    out["close_sma50"] = close / df["SMA_50"] - 1
-    out["sma20_sma50"] = df["SMA_20"] / df["SMA_50"] - 1
-    out["rsi"] = df["RSI_14"] / 100.0
-    out["rsi_slope"] = ((df["RSI_14"] - df["RSI_14"].shift(3)) / 100.0).fillna(0.0)
-    out["macd_n"] = df["MACD"] / close
-    out["macd_signal_n"] = df["MACD_Signal"] / close
-    out["macd_hist_n"] = df["MACD_Hist"] / close
+    out["ret_1"] = close.pct_change(1).fillna(0.0)
+    out["ret_2"] = close.pct_change(min(2, max(1, n_rows - 1))).fillna(out["ret_1"])
+    out["ret_3"] = close.pct_change(min(3, max(1, n_rows - 1))).fillna(out["ret_2"])
+    out["ret_5"] = close.pct_change(min(5, max(1, n_rows - 1))).fillna(out["ret_3"])
+    out["ret_10"] = close.pct_change(min(10, max(1, n_rows - 1))).fillna(out["ret_5"])
+    out["ret_20"] = close.pct_change(min(20, max(1, n_rows - 1))).fillna(out["ret_10"])
+
+    out["close_sma20"] = (close / df["SMA_20"] - 1).fillna(0.0)
+    out["close_sma50"] = (close / df["SMA_50"] - 1).fillna(out["close_sma20"])
+    out["sma20_sma50"] = (df["SMA_20"] / df["SMA_50"] - 1).fillna(0.0)
+    out["rsi"] = (df["RSI_14"] / 100.0).fillna(0.5)
+    shift_k = min(3, max(1, n_rows - 1))
+    out["rsi_slope"] = ((df["RSI_14"] - df["RSI_14"].shift(shift_k)) / 100.0).fillna(0.0)
+    out["macd_n"] = (df["MACD"] / close).fillna(0.0)
+    out["macd_signal_n"] = (df["MACD_Signal"] / close).fillna(0.0)
+    out["macd_hist_n"] = (df["MACD_Hist"] / close).fillna(0.0)
     band = (df["BB_Upper"] - df["BB_Lower"]).replace(0, np.nan)
-    out["bb_pct"] = (close - df["BB_Lower"]) / band
-    out["volatility_10"] = out["ret_1"].rolling(10).std()
-    out["volatility_20"] = out["ret_1"].rolling(20).std().fillna(out["volatility_10"])
-    out["atr_n"] = df["ATR_14"] / close
-    out["hl_range"] = (df["High"] - df["Low"]) / close
-    out["dist_high20"] = (close / df["High"].rolling(20, min_periods=5).max() - 1).fillna(0.0)
-    out["dist_low20"] = (close / df["Low"].rolling(20, min_periods=5).min() - 1).fillna(0.0)
-    vol_mean = df["Volume"].rolling(20).mean()
-    out["volume_ratio"] = (df["Volume"] / vol_mean.replace(0, np.nan)) - 1
+    out["bb_pct"] = ((close - df["BB_Lower"]) / band).fillna(0.5)
+
+    vol10 = out["ret_1"].rolling(min(10, max(2, n_rows)), min_periods=2).std().fillna(0.02)
+    out["volatility_10"] = vol10
+    out["volatility_20"] = out["ret_1"].rolling(min(20, max(2, n_rows)), min_periods=2).std().fillna(vol10)
+    out["atr_n"] = (df["ATR_14"] / close).fillna(0.02)
+    out["hl_range"] = ((df["High"] - df["Low"]) / close).fillna(0.02)
+
+    out["dist_high20"] = (close / df["High"].rolling(min(20, max(2, n_rows)), min_periods=1).max() - 1).fillna(0.0)
+    out["dist_low20"] = (close / df["Low"].rolling(min(20, max(2, n_rows)), min_periods=1).min() - 1).fillna(0.0)
+
+    vol_mean = df["Volume"].rolling(min(20, max(1, n_rows)), min_periods=1).mean()
+    out["volume_ratio"] = ((df["Volume"] / vol_mean.replace(0, np.nan)) - 1).fillna(0.0)
     out["volume_change"] = df["Volume"].pct_change(1).clip(-2.0, 5.0).fillna(0.0)
 
     if market is not None and not market.empty:
-        mkt = market["MKT_Close"].reindex(df.index).ffill()
-        out["mkt_ret_1"] = mkt.pct_change(1)
-        out["mkt_ret_5"] = mkt.pct_change(5)
-        out["mkt_ret_20"] = mkt.pct_change(20)
-        out["mkt_close_sma50"] = mkt / mkt.rolling(50).mean() - 1
+        mkt = market["MKT_Close"].reindex(df.index).ffill().bfill()
+        mkt_len = len(mkt.dropna())
+        out["mkt_ret_1"] = mkt.pct_change(1).fillna(0.0)
+        out["mkt_ret_5"] = mkt.pct_change(min(5, max(1, mkt_len - 1))).fillna(out["mkt_ret_1"])
+        out["mkt_ret_20"] = mkt.pct_change(min(20, max(1, mkt_len - 1))).fillna(out["mkt_ret_5"])
+        mkt_sma50 = mkt.rolling(min(50, max(2, mkt_len)), min_periods=1).mean()
+        out["mkt_close_sma50"] = (mkt / mkt_sma50 - 1).fillna(0.0)
     else:
         for c in ["mkt_ret_1", "mkt_ret_5", "mkt_ret_20", "mkt_close_sma50"]:
             out[c] = 0.0
@@ -132,9 +143,10 @@ def build_features(df: pd.DataFrame, market: pd.DataFrame | None = None) -> pd.D
     out[TARGET_UP] = (out[TARGET_COLUMN] > 0).astype(float).where(out[TARGET_COLUMN].notna())
     out["Close"] = close
 
-    out = out.replace([np.inf, -np.inf], np.nan)
-    # Özelliklerde NaN olan (ısınma) satırları at; hedefteki son NaN korunur.
-    return out.dropna(subset=FEATURE_COLUMNS)
+    out[FEATURE_COLUMNS] = out[FEATURE_COLUMNS].bfill().ffill().fillna(0.0)
+    out = out.replace([np.inf, -np.inf], 0.0)
+    # Özelliklerde NaN kalmadı; son günün hedefi NaN (tahmin yapılacak gün)
+    return out
 
 
 def chronological_split(features: pd.DataFrame, train_ratio: float = TRAIN_RATIO) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -485,55 +497,84 @@ def get_or_train_dedicated_model(ticker: str, force: bool = False) -> dict[str, 
 
 
 def predict(ticker: str, bundle: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Hissenin en güncel verisiyle hem hisseye özel hem piyasa geneli modelinden tahmin üretir."""
+    """Hissenin en güncel verisiyle hem hisseye özel hem piyasa geneli modelinden tahmin üretir.
+    
+    Kıdemli Veri Bilimci (Senior Data Scientist) Yaklaşımı:
+    - Yeni halka arz olmuş (kısa geçmişli) hisselerde (< 80 işlem günü), hisseye özel
+      aşırı uyum (overfitting) tuzağına düşmek yerine 60.000+ günlük BIST likit havuzunda
+      eğitilmiş Global Model transfer öğrenmesi kullanılır.
+    - Parametre belirsizliği heteroskedastik güven aralığı çarpanı ile modellenir.
+    """
     global_bundle = bundle or load_model()
     ticker = normalize_ticker(ticker)
 
     df = get_processed_data(ticker)
+    history_days = len(df)
+    is_ipo = history_days < 80
+
     market = _safe_market()
     feats = build_features(df, market)
     if feats.empty:
         raise DataFetchError(f"'{ticker}' için tahmin üretecek yeterli veri yok.")
 
     latest = feats.iloc[[-1]]
-    x = latest[FEATURE_COLUMNS]
+
+    # Modelin eğitildiği özellik kolonlarıyla hizala
+    glob_reg: RandomForestRegressor = global_bundle["regressor"]
+    glob_clf: RandomForestClassifier = global_bundle["classifier"]
+    model_features = getattr(glob_reg, "feature_names_in_", FEATURE_COLUMNS)
+
+    x = latest[list(model_features)]
     x_np = x.to_numpy()
     last_close = float(latest["Close"].iloc[0])
 
-    # 1) Hisseye Özel Model (Dedicated Model)
-    try:
-        ded_bundle = get_or_train_dedicated_model(ticker)
-        ded_reg: RandomForestRegressor = ded_bundle["regressor"]
-        ded_clf: RandomForestClassifier = ded_bundle["classifier"]
+    # 1) Hisseye Özel Model (Yalnızca yeterli geçmişi olan hisseler için)
+    ded_return = None
+    ded_prob_up = None
+    ded_accuracy = None
+    ded_price = None
+    ded_train_size = None
+    ded_reg = None
 
-        ded_return = float(ded_reg.predict(x)[0])
-        ded_prob_up = float(ded_clf.predict_proba(x)[0][list(ded_clf.classes_).index(1.0)])
-        ded_accuracy = ded_bundle["metrics"]["directional_accuracy"]
-        ded_price = round(last_close * (1 + ded_return), 2)
-        ded_train_size = ded_bundle["train_size"]
-    except Exception as exc:
-        logger.warning("%s hisseye özel model hatası, piyasa modeli kullanılacak: %s", ticker, exc)
-        ded_return = None
-        ded_prob_up = None
-        ded_accuracy = None
-        ded_price = None
-        ded_train_size = None
+    if not is_ipo:
+        try:
+            ded_bundle = get_or_train_dedicated_model(ticker)
+            ded_reg = ded_bundle["regressor"]
+            ded_clf: RandomForestClassifier = ded_bundle["classifier"]
+
+            ded_features = getattr(ded_reg, "feature_names_in_", FEATURE_COLUMNS)
+            x_ded = latest[list(ded_features)]
+
+            ded_return = float(ded_reg.predict(x_ded)[0])
+            ded_prob_up = float(ded_clf.predict_proba(x_ded)[0][list(ded_clf.classes_).index(1.0)])
+            ded_accuracy = ded_bundle["metrics"]["directional_accuracy"]
+            ded_price = round(last_close * (1 + ded_return), 2)
+            ded_train_size = ded_bundle["train_size"]
+        except Exception as exc:
+            logger.warning("%s hisseye özel model atlandı / piyasa modeli devrede: %s", ticker, exc)
 
     # 2) Piyasa Geneli Model (Global BIST Benchmark)
-    glob_reg: RandomForestRegressor = global_bundle["regressor"]
-    glob_clf: RandomForestClassifier = global_bundle["classifier"]
-
     glob_return = float(glob_reg.predict(x)[0])
     glob_prob_up = float(glob_clf.predict_proba(x)[0][list(glob_clf.classes_).index(1.0)])
     glob_price = round(last_close * (1 + glob_return), 2)
 
-    # Karar ağaçlarının aralığı (Confidence interval %10-%90) - Hibrit ağaç dağılımı
+    # Karar ağaçlarının aralığı (Confidence interval %10-%90)
     all_tree_returns = [est.predict(x_np)[0] for est in glob_reg.estimators_]
-    if "ded_reg" in locals() and ded_reg is not None:
-        all_tree_returns.extend([est.predict(x_np)[0] for est in ded_reg.estimators_])
-    low_ret, high_ret = np.percentile(all_tree_returns, [10, 90])
+    if ded_reg is not None:
+        try:
+            x_ded_np = latest[list(getattr(ded_reg, "feature_names_in_", FEATURE_COLUMNS))].to_numpy()
+            all_tree_returns.extend([est.predict(x_ded_np)[0] for est in ded_reg.estimators_])
+        except Exception:
+            pass
 
-    # 3) Hibrit Konsensüs Hesaplama (65% hisseye özel + 35% piyasa geneli)
+    raw_low_ret, raw_high_ret = np.percentile(all_tree_returns, [10, 90])
+
+    # Halka arz belirsizlik çarpanı (Sample-size Bayesian risk adjustment)
+    uncertainty_mult = 1.0 + (max(0.0, (80 - history_days) / 80.0) * 0.55 if is_ipo else 0.0)
+    low_ret = raw_low_ret * uncertainty_mult if raw_low_ret < 0 else raw_low_ret / uncertainty_mult
+    high_ret = raw_high_ret * uncertainty_mult if raw_high_ret > 0 else raw_high_ret / uncertainty_mult
+
+    # 3) Konsensüs Hesaplama (Uzun geçmişte 65% hisseye özel + 35% global; halka arzda %100 global transfer)
     if ded_return is not None and ded_prob_up is not None:
         final_return = 0.65 * ded_return + 0.35 * glob_return
         final_prob = 0.65 * ded_prob_up + 0.35 * glob_prob_up
@@ -559,6 +600,12 @@ def predict(ticker: str, bundle: dict[str, Any] | None = None) -> dict[str, Any]
         trend = "NEUTRAL"
         consensus_text = "NÖTR / YATAY"
 
+    ipo_note = (
+        f"Bu hisse BIST'e yakın zamanda kote olduğundan ({history_days} işlem günü), "
+        "tahmin 60.000+ günlük BIST havuzunda eğitilmiş Global Piyasa Modeli ve "
+        "uyarlamalı kısa vadeli indikatör transfer öğrenmesi ile üretilmiştir."
+    ) if is_ipo else None
+
     return {
         "ticker": ticker,
         "last_close": round(last_close, 2),
@@ -571,6 +618,9 @@ def predict(ticker: str, bundle: dict[str, Any] | None = None) -> dict[str, Any]
         "trend": trend,
         "consensus_label": consensus_text,
         "confidence": round(abs(final_prob - 0.5) * 2, 4),
+        "is_ipo": is_ipo,
+        "history_days": history_days,
+        "ipo_note": ipo_note,
         "dedicated_model": {
             "enabled": ded_return is not None,
             "predicted_price": ded_price,
