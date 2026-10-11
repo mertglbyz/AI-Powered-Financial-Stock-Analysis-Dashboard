@@ -1,0 +1,46 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bist-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_PATH=/app/model.pkl
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - DATA_CACHE_TTL=900
+      - AUTO_TRAIN=1
+    volumes:
+      - backend_models:/app
+    networks:
+      - bist-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000
+    container_name: bist-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - bist-network
+
+volumes:
+  backend_models:
+    name: bist_model_cache
+
+networks:
+  bist-network:
+    name: bist_network
+    driver: bridge
