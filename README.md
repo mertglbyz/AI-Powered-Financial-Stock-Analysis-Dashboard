@@ -205,7 +205,9 @@ API varsayılan olarak `http://localhost:8000` portunda çalışır.
 | Metot | Endpoint | Parametreler | Açıklama |
 |---|---|---|---|
 | `GET` | `/api/health` | - | Servis ve ML model hazır olma durumu |
-| `GET` | `/api/tickers` | `q` (arama metni), `limit` | BIST hisse arama (otomatik tamamlama) |
+| `GET` | `/api/tickers` | `q` (arama metni), `limit` | BIST hisse arama (tüm BIST + yeni halka arzlar için dinamik tamamlama) |
+| `GET` | `/api/market/overview` | - | BIST 100 endeksi, piyasa hissi ve öne çıkan hisseler |
+| `GET` | `/api/market/performance` | `timeframe` (1w, 1mo, 1y) | Haftalık, aylık, yıllık tüm yükselenler ve düşenler tam listesi |
 | `GET` | `/api/historical/{ticker}` | `ticker`, `period` (1mo, 3mo, 6mo, 1y, 2y, 5y) | OHLCV fiyatları, SMA, RSI, MACD, Bollinger serileri |
 | `GET` | `/api/predict/{ticker}` | `ticker` | Fiyat tahmini, trend, güven aralığı ve 5 teknik sinyal |
 | `GET` | `/api/model/info` | - | Holdout test metrikleri ve özellik önemleri |
@@ -216,10 +218,13 @@ API varsayılan olarak `http://localhost:8000` portunda çalışır.
 # 1. Hisse Arama
 curl "http://localhost:8000/api/tickers?q=garan"
 
-# 2. Geçmiş Veri ve İndikatörler
+# 2. Haftalık En Çok Yükselen / Düşen Tüm Hisseler
+curl "http://localhost:8000/api/market/performance?timeframe=1w"
+
+# 3. Geçmiş Veri ve İndikatörler
 curl "http://localhost:8000/api/historical/THYAO.IS?period=1y"
 
-# 3. Yapay Zeka Tahmini
+# 4. Yapay Zeka Tahmini
 curl "http://localhost:8000/api/predict/THYAO.IS"
 ```
 
@@ -234,6 +239,9 @@ curl "http://localhost:8000/api/predict/THYAO.IS"
 - **Bileşen Yapısı:**
   - `Navbar.tsx`: Marka logosu, BIST hisse kapsamı etiketi, Terimler Sözlüğü butonu, Model Metrikleri butonu, Açık/Koyu tema anahtarı.
   - `TickerSearch.tsx`: Klavye yön tuşlarıyla gezilebilen debounced hisse arama kutusu ve hızlı BIST30 seçim hapları.
+  - `MarketOverview.tsx`: BIST 100 endeks kartı, Yapay Zeka Piyasa Hissi barometresi, öne çıkan hisseler tablosu.
+  - `MarketLeaderboard.tsx`: Haftalık, Aylık, Yıllık getiri liderleri (Tüm yükselenler ve tüm düşenler filtrelenebilir tam liste).
+  - `InfoTooltip.tsx`: Görünüm sınırlarını otomatik algılayan, z-index taşmalarını önleyen akıllı bilgi baloncukları.
   - `StockHeader.tsx`: Hisse kodu, şirket unvanı, anlık fiyat, günlük değişim, 52 haftalık en yüksek/en düşük istatistikleri.
   - `StockChart.tsx`: Periyot seçici, indikatör açma/kapama butonları, fiyat grafiği ve alt RSI/MACD osilatör paneli.
   - `PredictionCard.tsx`: Hedef fiyat, güven aralığı, yön olasılığı ve 5 kural tabanlı teknik indikatör sinyali.

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { MarketOverviewResponse, MarketStockSnapshot } from "@/types/stock";
 import { InfoTooltip } from "./InfoTooltip";
+import { MarketLeaderboard } from "./MarketLeaderboard";
 
 interface MarketOverviewProps {
   overview: MarketOverviewResponse | null;
@@ -66,7 +67,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
       {/* Hero Market Header */}
-      <div className="card-panel rounded-2xl p-6 sm:p-8 bg-gradient-to-r from-blue-900/10 via-indigo-900/10 to-transparent border border-blue-500/20 relative overflow-hidden">
+      <div className="card-panel rounded-2xl p-6 sm:p-8 bg-gradient-to-r from-blue-900/10 via-indigo-900/10 to-transparent border border-blue-500/20 relative">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -75,7 +76,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                 Canlı Borsa İstanbul Paneli
               </span>
               <span className="text-xs text-slate-400">
-                420+ Hisse • BIST 100 Endeks Özeti
+                500+ BIST Hissesi • BIST 100 Endeks Özeti
               </span>
             </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
@@ -94,6 +95,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                 <InfoTooltip
                   title="BIST 100 (XU100)"
                   description="Borsa İstanbul Pay Piyasası için temel gösterge endeksidir. En yüksek piyasa değerine ve işlem hacmine sahip 100 şirketten oluşur."
+                  interpretation="Endeksin yönü genel Borsa İstanbul piyasa iklimini ve yabancı/yerli fon akışını yansıtır."
+                  placement="bottom"
+                  align="left"
                 />
               </div>
               <span className="font-mono text-[11px]">{bist100.last_date}</span>
@@ -134,17 +138,20 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
               Yapay Zeka Piyasa Hissi
             </span>
             <InfoTooltip
-              title="Yapay Zeka Piyasa Hissi (Sentiment Barometer)"
+              title="Yapay Zeka Piyasa Hissi & Borsa Jargonu"
               description="Önde gelen BIST hisselerinde karar ağaçlarının yükseliş (Boğa) ve düşüş (Ayı) sinyali üretme oranını gösterir."
+              interpretation="Finans literatüründe yükseliş trendleri 'Boğa Piyasası' (Bullish), düşüş ve kâr realizasyonu baskısı ise 'Ayı Piyasası' (Bearish) olarak adlandırılır."
+              placement="bottom"
+              align="right"
             />
           </div>
 
-          <div className="flex items-baseline justify-between">
-            <span className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="space-y-1">
+            <span className="text-base font-extrabold text-slate-900 dark:text-white block leading-tight">
               {sentiment_barometer.market_sentiment}
             </span>
-            <span className="text-xs font-bold font-mono text-emerald-500">
-              %{sentiment_barometer.bullish_pct} Boğa
+            <span className="inline-block text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              Borsa Terimi: {sentiment_barometer.market_sentiment_term || "Piyasa Eğilimi"}
             </span>
           </div>
 
@@ -167,9 +174,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
             />
           </div>
           <div className="flex justify-between text-[10px] text-slate-400">
-            <span>Yükseliş: %{sentiment_barometer.bullish_pct}</span>
+            <span>Alım: %{sentiment_barometer.bullish_pct}</span>
             <span>Nötr: %{sentiment_barometer.neutral_pct}</span>
-            <span>Düşüş: %{sentiment_barometer.bearish_pct}</span>
+            <span>Satış: %{sentiment_barometer.bearish_pct}</span>
           </div>
         </div>
 
@@ -257,20 +264,23 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
         </div>
       </div>
 
+      {/* Market Leaderboard (Haftalık, Aylık, Yıllık Artıda ve Ekside Olan Tüm Hisseler) */}
+      <MarketLeaderboard onSelectStock={onSelectStock} />
+
       {/* Interactive Stock Screener Table */}
       <div className="card-panel rounded-2xl p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <BarChart2 className="w-5 h-5 text-blue-500" />
-              BIST Öne Çıkan Hisseler & Yapay Zeka Sinyalleri
+              BIST Lokomotif Hisseler & Yapay Zeka Sinyalleri
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               İncelemek istediğiniz hissenin üzerine tıklayarak derinlemesine analiz sayfasına geçebilirsiniz.
             </p>
           </div>
           <span className="text-xs text-slate-400 font-mono self-start sm:self-auto">
-            {popular_stocks.length} Hisse Taranıyor
+            {popular_stocks.length} Lokomotif Hisse
           </span>
         </div>
 
@@ -288,6 +298,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                     <InfoTooltip
                       title="RSI (14)"
                       description="14 günlük Göreceli Güç Endeksi. 70 üzeri aşırı alım, 30 altı aşırı satım bölgesidir."
+                      placement="bottom"
+                      align="center"
                     />
                   </div>
                 </th>
@@ -298,6 +310,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                     <InfoTooltip
                       title="Yapay Zeka Sinyali"
                       description="Random Forest modelinin hisse trendi ve teknik göstergeler üzerinden ürettiği anlık sinyal."
+                      placement="bottom"
+                      align="right"
                     />
                   </div>
                 </th>

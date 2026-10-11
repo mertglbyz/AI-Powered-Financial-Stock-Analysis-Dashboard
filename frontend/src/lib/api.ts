@@ -2,6 +2,7 @@ import {
   HealthResponse,
   HistoricalResponse,
   MarketOverviewResponse,
+  MarketPerformanceResponse,
   ModelInfoResponse,
   PeriodType,
   PredictionResponse,
@@ -41,6 +42,14 @@ export async function getHealth(): Promise<HealthResponse> {
 
 export async function getMarketOverview(): Promise<MarketOverviewResponse> {
   return fetchJson<MarketOverviewResponse>("/api/market/overview");
+}
+
+export async function getMarketPerformance(
+  timeframe: "1w" | "1mo" | "1y" = "1w"
+): Promise<MarketPerformanceResponse> {
+  return fetchJson<MarketPerformanceResponse>(
+    `/api/market/performance?timeframe=${timeframe}`
+  );
 }
 
 export async function searchTickers(query: string = "", limit: number = 20): Promise<TickerItem[]> {

@@ -191,6 +191,8 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
               title="Hedef Kapanış Fiyatı (T+1)"
               description="Hisseye özel Random Forest Regresyon modeli (%65) ile BIST geneli modelin (%35) bir sonraki işlem günü kapanışı için ürettiği ağırlıklı uzlaşı fiyatıdır."
               interpretation="Model kesin bir garanti vermez; piyasadaki ani haber akışları ve makroekonomik şoklar hedef fiyatı etkileyebilir."
+              placement="bottom"
+              align="left"
             />
           </div>
           {onOpenGlossary && (
@@ -230,6 +232,8 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
                 title="%10-%90 Güven Aralığı (Confidence Interval)"
                 description="Topluluktaki (Ensemble) 100 karar ağacının tahmin dağılımının %10 ve %90 persentil sınırlarıdır."
                 interpretation="Aralık dar olduğunda model ağaçlarının tahmini üzerindeki uzlaşısı yüksektir; aralık genişlediğinde volatilite ve belirsizlik artmıştır."
+                placement="bottom"
+                align="right"
               />
             </div>
             <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200">
@@ -249,6 +253,8 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({
               title="Yükseliş Olasılığı (P_up)"
               description="Sınıflandırma modelindeki karar ağaçlarının sonraki günün pozitif getiri ile kapanacağına dair oy oranıdır."
               interpretation="≥%55 yükseliş (AL), ≤%45 düşüş (SAT), %45-%55 arası piyasa yönü belirsiz (NÖTR) kabul edilir."
+              placement="bottom"
+              align="left"
             />
           </div>
           <span className="font-bold font-mono text-slate-900 dark:text-white">

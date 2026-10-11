@@ -440,6 +440,71 @@ YYLGD|Yayla Agro Gıda
 ZEDUR|Zedur Enerji
 ZOREN|Zorlu Enerji
 ZRGYO|Ziraat GYO
+EFORC|Efor Çay Sanayi
+SURGY|Sur Tatil Evleri GYO
+HOROZ|Horoz Lojistik
+ONRYT|Onur Yüksek Teknoloji
+OZATD|Özata Denizcilik
+KOCMT|Koç Metalurji
+LILAK|Lila Kağıt
+RGYAS|Rönesans Gayrimenkul Yatırım
+ENTRA|IC Enterra Yenilenebilir Enerji
+MOGAN|Mogan Enerji
+ARTMS|Artemis Halı
+ALVES|Alves Kablo
+OBAMS|Oba Makarnacılık
+LMKDC|Limak Doğu Anadolu Çimento
+KBORU|Kuzey Boru
+MEKAG|Meka Beton Santralleri
+DOFER|Dofer Yapı Malzemeleri
+MHRGY|MHR Gayrimenkul Yatırım
+TABGD|TAB Gıda Sanayi
+VRGYO|Vera Konsept GYO
+PATEK|Pasifik Teknoloji
+ALTNY|Altınay Savunma Teknolojileri
+HRKET|Hareket Proje Taşımacılığı
+DURKN|Durukan Şekerleme
+KOTON|Koton Mağazacılık
+BEGYO|Batı Ege GYO
+CATES|Çates Elektrik
+BINHO|1000 Yatırımlar Holding
+MARBL|Tureks Turunç Madencilik
+EKOS|Ekos Teknoloji ve Elektrik
+EBEBK|Ebebek Mağazacılık
+TARKM|Tarkim Bitki Koruma
+GIPTA|Gıpta Ofis Kırtasiye
+REEDR|Reeder Teknoloji
+HATSN|Hatsan Gemi İnşaa
+ADGYO|Adra GYO
+DMRGD|DMR Unlu Mamuller (Simit Sarayı)
+MEGMT|Mega Metal Sanayi
+BAHKM|Bahadır Kimya
+A1CAP|A1 Capital Yatırım Menkul Değerler
+FORTE|Forte Bilgi İletişim Teknolojileri
+CVKMD|CVK Maden İşletmeleri
+KOPOL|Koza Polyester Sanayi
+EUPWR|Europower Enerji
+CWENE|CW Enerji Mühendislik
+KAYSE|Kayseri Şeker Fabrikası
+PASEU|Pasifik Eurasia Lojistik
+SDTTR|SDT Uzay ve Savunma Teknolojileri
+SOKE|Söke Değirmencilik
+TETMT|Tetamat Gıda
+GOKNR|Göknur Gıda
+EKSUN|Eksun Gıda Tarım
+GZNMI|Gezinomi Seyahat
+EDIP|Edip Gayrimenkul
+ENERY|Enerya Enerji
+TATEN|Tatlıpınar Enerji Üretim
+IZENR|İzdemir Enerji Elektrik Üretim
+OFSYM|Ofis Yem Gıda Sanayi
+BYDNR|Baydöner Restoranları
+ASGYO|Asce Gayrimenkul Yatırım
+DCTTR|DCT Ticaret
+GUNDG|Gündoğdu Gıda
+CEMZY|Cem Zeytin
+KLYSN|Kalyon Güneş Teknolojileri
+SEGMN|Seyidoğlu Gıda
 """
 
 
@@ -461,9 +526,12 @@ def _fold(s: str) -> str:
     return s.translate(table).lower()
 
 
-def search_tickers(query: str = "", limit: int = 20) -> list[dict[str, str]]:
+def search_tickers(query: str = "", limit: int = 25) -> list[dict[str, str]]:
     """Sembol veya şirket adına göre arama. Sembol başı eşleşmeleri önce gelir."""
-    q = _fold(query.strip().replace(".IS", "").replace(".is", ""))
+    raw_query = query.strip()
+    clean_code = raw_query.upper().replace(".IS", "")
+    q = _fold(clean_code)
+
     items = [{"symbol": f"{c}.IS", "code": c, "name": n} for c, n in BIST_TICKERS.items()]
     if not q:
         bist30 = set(BIST30)
@@ -483,8 +551,24 @@ def search_tickers(query: str = "", limit: int = 20) -> list[dict[str, str]]:
 
     scored = [(s, i) for i in items if (s := score(i)) is not None]
     scored.sort(key=lambda x: (x[0], x[1]["code"]))
-    return [i for _, i in scored[:limit]]
+    results = [i for _, i in scored[:limit]]
+
+    # Eğer kullanıcı doğrudan geçerli bir BIST kodu girdiyse (örn: yeni halka arz kodu)
+    # ve sonuç listesinde tam eşleşme yoksa dinamik olarak en başa ekle:
+    if len(clean_code) >= 3 and clean_code.isalnum():
+        if not any(r["code"] == clean_code for r in results):
+            results.insert(
+                0,
+                {
+                    "symbol": f"{clean_code}.IS",
+                    "code": clean_code,
+                    "name": BIST_TICKERS.get(clean_code, f"{clean_code} (Borsa İstanbul / Yahoo)"),
+                },
+            )
+
+    return results[:limit]
 
 
 def company_name(symbol: str) -> str | None:
-    return BIST_TICKERS.get(symbol.upper().replace(".IS", ""))
+    clean = symbol.upper().replace(".IS", "")
+    return BIST_TICKERS.get(clean, f"{clean} Pay Senedi")

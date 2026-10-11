@@ -143,10 +143,37 @@ export interface MarketOverviewResponse {
     neutral_pct: number;
     total_analyzed: number;
     market_sentiment: string;
+    market_sentiment_term?: string;
+    market_sentiment_desc?: string;
   };
   popular_stocks: MarketStockSnapshot[];
   top_gainers: MarketStockSnapshot[];
   top_losers: MarketStockSnapshot[];
+  updated_at: string;
+}
+
+export interface PerformanceStockItem {
+  ticker: string;
+  code: string;
+  name: string;
+  last_close: number;
+  start_close: number;
+  change: number;
+  change_pct: number;
+  volume: number;
+  trend: TrendType;
+  rsi: number;
+}
+
+export interface MarketPerformanceResponse {
+  timeframe: "1w" | "1mo" | "1y";
+  timeframe_label: string;
+  total_analyzed: number;
+  total_gainers: number;
+  total_losers: number;
+  gainers: PerformanceStockItem[];
+  losers: PerformanceStockItem[];
+  all_stocks: PerformanceStockItem[];
   updated_at: string;
 }
 

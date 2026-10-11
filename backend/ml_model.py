@@ -46,14 +46,14 @@ MODEL_PATH = Path(os.getenv("MODEL_PATH", Path(__file__).resolve().parent / "mod
 DEFAULT_TRAINING_TICKERS: list[str] = [f"{c}.IS" for c in BIST30]
 
 FEATURE_COLUMNS: list[str] = [
-    # momentum
-    "ret_1", "ret_5", "ret_10", "ret_20",
+    # momentum & returns
+    "ret_1", "ret_2", "ret_3", "ret_5", "ret_10", "ret_20",
     # trend
     "close_sma20", "close_sma50", "sma20_sma50",
     # osilatörler
-    "rsi", "macd_n", "macd_signal_n", "macd_hist_n", "bb_pct",
-    # volatilite & hacim
-    "volatility_10", "atr_n", "hl_range", "volume_ratio",
+    "rsi", "rsi_slope", "macd_n", "macd_signal_n", "macd_hist_n", "bb_pct",
+    # volatilite & hacim dinamikleri
+    "volatility_10", "volatility_20", "atr_n", "hl_range", "dist_high20", "dist_low20", "volume_ratio", "volume_change",
     # piyasa bağlamı (BIST100)
     "mkt_ret_1", "mkt_ret_5", "mkt_ret_20", "mkt_close_sma50", "rel_strength_20",
 ]
@@ -70,6 +70,13 @@ _model_lock = threading.Lock()
 training_state: dict[str, Any] = {"status": "idle", "started_at": None, "finished_at": None, "error": None}
 
 
+def compute_time_weights(n_samples: int, decay_rate: float = 0.0018) -> np.ndarray:
+    """Finansal zaman serilerinde yakın tarihteki piyasa rejimine üstel olarak daha yüksek ağırlık verir."""
+    indices = np.arange(n_samples)
+    weights = np.exp(decay_rate * (indices - n_samples))
+    return np.maximum(weights / np.mean(weights), 0.1)
+
+
 # ---------------------------------------------------------------------------
 # Özellik mühendisliği
 # ---------------------------------------------------------------------------
@@ -83,6 +90,8 @@ def build_features(df: pd.DataFrame, market: pd.DataFrame | None = None) -> pd.D
     close = df["Close"]
 
     out["ret_1"] = close.pct_change(1)
+    out["ret_2"] = close.pct_change(2)
+    out["ret_3"] = close.pct_change(3)
     out["ret_5"] = close.pct_change(5)
     out["ret_10"] = close.pct_change(10)
     out["ret_20"] = close.pct_change(20)
@@ -90,16 +99,21 @@ def build_features(df: pd.DataFrame, market: pd.DataFrame | None = None) -> pd.D
     out["close_sma50"] = close / df["SMA_50"] - 1
     out["sma20_sma50"] = df["SMA_20"] / df["SMA_50"] - 1
     out["rsi"] = df["RSI_14"] / 100.0
+    out["rsi_slope"] = ((df["RSI_14"] - df["RSI_14"].shift(3)) / 100.0).fillna(0.0)
     out["macd_n"] = df["MACD"] / close
     out["macd_signal_n"] = df["MACD_Signal"] / close
     out["macd_hist_n"] = df["MACD_Hist"] / close
     band = (df["BB_Upper"] - df["BB_Lower"]).replace(0, np.nan)
     out["bb_pct"] = (close - df["BB_Lower"]) / band
     out["volatility_10"] = out["ret_1"].rolling(10).std()
+    out["volatility_20"] = out["ret_1"].rolling(20).std().fillna(out["volatility_10"])
     out["atr_n"] = df["ATR_14"] / close
     out["hl_range"] = (df["High"] - df["Low"]) / close
+    out["dist_high20"] = (close / df["High"].rolling(20, min_periods=5).max() - 1).fillna(0.0)
+    out["dist_low20"] = (close / df["Low"].rolling(20, min_periods=5).min() - 1).fillna(0.0)
     vol_mean = df["Volume"].rolling(20).mean()
     out["volume_ratio"] = (df["Volume"] / vol_mean.replace(0, np.nan)) - 1
+    out["volume_change"] = df["Volume"].pct_change(1).clip(-2.0, 5.0).fillna(0.0)
 
     if market is not None and not market.empty:
         mkt = market["MKT_Close"].reindex(df.index).ffill()
@@ -112,7 +126,9 @@ def build_features(df: pd.DataFrame, market: pd.DataFrame | None = None) -> pd.D
             out[c] = 0.0
     out["rel_strength_20"] = out["ret_20"] - out["mkt_ret_20"]
 
-    out[TARGET_COLUMN] = close.shift(-1) / close - 1
+    # Borsa İstanbul günlük ±%10 tavan/taban kuralları doğrultusunda getiri kırpma (Winsorization)
+    raw_target = close.shift(-1) / close - 1
+    out[TARGET_COLUMN] = raw_target.clip(-0.105, 0.105)
     out[TARGET_UP] = (out[TARGET_COLUMN] > 0).astype(float).where(out[TARGET_COLUMN].notna())
     out["Close"] = close
 
@@ -437,19 +453,21 @@ def get_or_train_dedicated_model(ticker: str, force: bool = False) -> dict[str, 
     if len(tr) < 80:
         raise DataFetchError(f"'{ticker}' için hisseye özel model eğitmeye yetecek geçmiş veri yok.")
 
-    reg = RandomForestRegressor(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
-    clf = RandomForestClassifier(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
+    reg = RandomForestRegressor(n_estimators=180, max_depth=7, min_samples_leaf=8, max_features="sqrt", n_jobs=-1, random_state=42)
+    clf = RandomForestClassifier(n_estimators=180, max_depth=7, min_samples_leaf=8, max_features="sqrt", n_jobs=-1, random_state=42)
 
-    reg.fit(tr[FEATURE_COLUMNS], tr[TARGET_COLUMN])
-    clf.fit(tr[FEATURE_COLUMNS], tr[TARGET_UP])
+    tr_w = compute_time_weights(len(tr))
+    reg.fit(tr[FEATURE_COLUMNS], tr[TARGET_COLUMN], sample_weight=tr_w)
+    clf.fit(tr[FEATURE_COLUMNS], tr[TARGET_UP], sample_weight=tr_w)
     metrics = evaluate(reg, te, clf).to_dict()
 
     # En güncel tahmin için tüm etiketli veriyle son fit
     labeled = feats.dropna(subset=[TARGET_COLUMN])
-    reg_full = RandomForestRegressor(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
-    clf_full = RandomForestClassifier(n_estimators=150, max_depth=6, min_samples_leaf=10, max_features="sqrt", n_jobs=-1, random_state=42)
-    reg_full.fit(labeled[FEATURE_COLUMNS], labeled[TARGET_COLUMN])
-    clf_full.fit(labeled[FEATURE_COLUMNS], labeled[TARGET_UP])
+    full_w = compute_time_weights(len(labeled))
+    reg_full = RandomForestRegressor(n_estimators=180, max_depth=7, min_samples_leaf=8, max_features="sqrt", n_jobs=-1, random_state=42)
+    clf_full = RandomForestClassifier(n_estimators=180, max_depth=7, min_samples_leaf=8, max_features="sqrt", n_jobs=-1, random_state=42)
+    reg_full.fit(labeled[FEATURE_COLUMNS], labeled[TARGET_COLUMN], sample_weight=full_w)
+    clf_full.fit(labeled[FEATURE_COLUMNS], labeled[TARGET_UP], sample_weight=full_w)
 
     bundle = {
         "ticker": ticker,
@@ -509,9 +527,11 @@ def predict(ticker: str, bundle: dict[str, Any] | None = None) -> dict[str, Any]
     glob_prob_up = float(glob_clf.predict_proba(x)[0][list(glob_clf.classes_).index(1.0)])
     glob_price = round(last_close * (1 + glob_return), 2)
 
-    # Karar ağaçlarının aralığı (Confidence interval %10-%90)
-    tree_preds = np.array([est.predict(x_np)[0] for est in glob_reg.estimators_])
-    low_ret, high_ret = np.percentile(tree_preds, [10, 90])
+    # Karar ağaçlarının aralığı (Confidence interval %10-%90) - Hibrit ağaç dağılımı
+    all_tree_returns = [est.predict(x_np)[0] for est in glob_reg.estimators_]
+    if "ded_reg" in locals() and ded_reg is not None:
+        all_tree_returns.extend([est.predict(x_np)[0] for est in ded_reg.estimators_])
+    low_ret, high_ret = np.percentile(all_tree_returns, [10, 90])
 
     # 3) Hibrit Konsensüs Hesaplama (65% hisseye özel + 35% piyasa geneli)
     if ded_return is not None and ded_prob_up is not None:
